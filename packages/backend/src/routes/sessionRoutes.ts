@@ -6,6 +6,7 @@ import { loadLatestSave } from '../state/autoSave';
 import { startAutoSave } from '../state/autoSave';
 import { runInitialCalculations } from '../game/initialCalculations';
 import { broadcast } from '../websocket/wsServer';
+import { startGameLoop } from '../game/gameLoop';
 
 const router = Router();
 
@@ -67,6 +68,7 @@ router.post('/start', (req: Request, res: Response) => {
   // Start game
   gameState.startGame();
   startAutoSave();
+  startGameLoop();
 
   // Broadcast to all clients
   broadcast({

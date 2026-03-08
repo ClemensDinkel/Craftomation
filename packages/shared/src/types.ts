@@ -65,7 +65,8 @@ export interface ManufacturingJob {
   recipeId: string;
   playerId: string;
   startedAt: number;      // timestamp
-  duration: number;       // ms
+  duration: number;       // ms total
+  remainingMs: number;    // ms remaining, decremented each tick
   completed: boolean;
 }
 
