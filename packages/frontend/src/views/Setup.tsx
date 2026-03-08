@@ -1,0 +1,195 @@
+import { useState } from 'react';
+import { useLocale } from '@/i18n';
+import { useGame } from '@/context/GameContext';
+import { Button, Card, Input, Slider } from '@/components/ui';
+import type { ModuleType } from '@craftomation/shared';
+
+const API_BASE = `http://${window.location.hostname}:3001`;
+
+const OPTIONAL_MODULES: { value: ModuleType; labelKey: string }[] = [
+  { value: 'plantation', labelKey: 'module.plantation' },
+  { value: 'university', labelKey: 'module.university' },
+  { value: 'stockmarket', labelKey: 'module.stockmarket' },
+  { value: 'backroom', labelKey: 'module.backroom' },
+  { value: 'influencer', labelKey: 'module.influencer' },
+  { value: 'warehouse', labelKey: 'module.warehouse' },
+];
+
+export function Setup() {
+  const { t } = useLocale();
+  const { state, dispatch } = useGame();
+  const [copied, setCopied] = useState(false);
+  const [playerCount, setPlayerCount] = useState(4);
+  const [gameSpeed, setGameSpeed] = useState(1.0);
+  const [consumptionRate, setConsumptionRate] = useState(1.0);
+  const [resourceTypes, setResourceTypes] = useState(6);
+  const [activeOptional, setActiveOptional] = useState<Set<ModuleType>>(new Set());
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function copySessionId() {
+    if (state.sessionId) {
+      navigator.clipboard.writeText(state.sessionId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  function toggleModule(mod: ModuleType) {
+    setActiveOptional(prev => {
+      const next = new Set(prev);
+      if (next.has(mod)) {
+        next.delete(mod);
+      } else {
+        next.add(mod);
+      }
+      return next;
+    });
+  }
+
+  async function handleStart() {
+    setStarting(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: state.sessionId,
+          config: {
+            playerCount,
+            gameSpeed,
+            consumptionRate,
+            resourceTypeCount: resourceTypes,
+            activeModules: [
+              'mine', 'manufacturing', 'lab', 'auction',
+              ...Array.from(activeOptional),
+            ],
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || t('common.error'));
+        setStarting(false);
+        return;
+      }
+
+      const data = await res.json();
+      dispatch({ type: 'SET_GAME_STATE', gameState: data.state });
+      dispatch({ type: 'NAVIGATE', view: 'game' });
+    } catch {
+      setError(t('common.error'));
+      setStarting(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => dispatch({ type: 'NAVIGATE', view: 'hostMenu' })}>
+            {t('common.back')}
+          </Button>
+          <h1 className="text-xl font-bold text-white">{t('setup.title')}</h1>
+        </div>
+        <button
+          onClick={copySessionId}
+          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-sm transition-colors"
+        >
+          <span className="text-gray-400">{t('setup.sessionId')}:</span>
+          <span className="text-white font-mono font-bold tracking-widest">{state.sessionId}</span>
+          <span className="text-xs text-indigo-400">{copied ? t('setup.copied') : ''}</span>
+        </button>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
+        {error && (
+          <div className="p-3 bg-red-900/50 text-red-400 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Connected Devices */}
+        <Card>
+          <h2 className="text-sm font-medium text-gray-400 mb-2">{t('setup.connectedDevices')}</h2>
+          <p className="text-gray-500 text-sm">{t('setup.noDevices')}</p>
+        </Card>
+
+        {/* Player Count */}
+        <Card>
+          <Input
+            id="playerCount"
+            label={t('setup.playerCount')}
+            type="number"
+            min={2}
+            max={20}
+            value={playerCount}
+            onChange={e => setPlayerCount(Math.max(2, Number(e.target.value)))}
+          />
+        </Card>
+
+        {/* Sliders */}
+        <Card className="space-y-4">
+          <Slider
+            label={t('setup.gameSpeed')}
+            value={gameSpeed}
+            min={0}
+            max={2}
+            step={0.1}
+            onChange={setGameSpeed}
+            displayValue={`${gameSpeed.toFixed(1)}x`}
+          />
+          <Slider
+            label={t('setup.consumptionRate')}
+            value={consumptionRate}
+            min={0}
+            max={2}
+            step={0.1}
+            onChange={setConsumptionRate}
+            displayValue={`${consumptionRate.toFixed(1)}x`}
+          />
+          <Slider
+            label={t('setup.resourceTypes')}
+            value={resourceTypes}
+            min={5}
+            max={10}
+            step={1}
+            onChange={setResourceTypes}
+          />
+        </Card>
+
+        {/* Optional Modules */}
+        <Card>
+          <h2 className="text-sm font-medium text-gray-400 mb-3">{t('setup.optionalModules')}</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {OPTIONAL_MODULES.map(mod => (
+              <label
+                key={mod.value}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700/50 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={activeOptional.has(mod.value)}
+                  onChange={() => toggleModule(mod.value)}
+                  className="rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500"
+                />
+                <span className="text-sm text-gray-200">{t(mod.labelKey)}</span>
+              </label>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Sticky Start Button */}
+      <div className="sticky bottom-0 bg-gray-900 border-t border-gray-800 p-4">
+        <Button size="full" onClick={handleStart} disabled={starting}>
+          {starting ? t('common.loading') : t('setup.startGame')}
+        </Button>
+      </div>
+    </div>
+  );
+}

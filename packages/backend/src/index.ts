@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import http from 'http';
 import sessionRoutes from './routes/sessionRoutes';
 import { initWebSocketServer } from './websocket/wsServer';
@@ -7,6 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = 3001;
 
+app.use(cors());
 app.use(express.json());
 
 // Health check
