@@ -3,7 +3,6 @@ import { gameState } from '../state/gameState';
 import {
   loadMetalElements,
   loadOrganicElements,
-  loadProductionGoods,
   loadMetalProducts,
   loadOrganicProducts,
   RawElement,
@@ -79,9 +78,7 @@ function selectResources(config: SessionConfig): Resource[] {
   const hasPlantation = config.activeModules.includes('plantation');
   const organicElements = hasPlantation ? loadOrganicElements() : [];
 
-  // Pool zusammenstellen: Metals immer, Organics nur wenn Plantation aktiv
   const allElements = [...metalElements, ...organicElements];
-
   const selected = selectWithUniqueInitials(allElements, config.resourceTypeCount);
 
   return selected.map((el, i) => ({
@@ -92,25 +89,10 @@ function selectResources(config: SessionConfig): Resource[] {
   }));
 }
 
-// Step 2: Generate recipes
+// Step 2: Generate recipes (consumables only)
 function generateRecipes(config: SessionConfig, resources: Resource[]): Recipe[] {
   const resourceIds = resources.map(r => r.id);
-  const recipes: Recipe[] = [];
 
-  // Production goods (immer alle laden)
-  const allGoods = loadProductionGoods();
-  for (const good of allGoods) {
-    const tier = Number(good.tier) as 1 | 2 | 3 | 4;
-    const seqLength = tier + 2;
-    recipes.push({
-      id: good.id,
-      tier,
-      type: 'production_good',
-      sequence: randomSequence(resourceIds, seqLength),
-    });
-  }
-
-  // Consumables: Metal-Produkte immer, Organic-Produkte nur wenn Plantation aktiv
   const metalProducts = loadMetalProducts();
   const hasPlantation = config.activeModules.includes('plantation');
   const organicProducts = hasPlantation ? loadOrganicProducts() : [];
@@ -120,25 +102,21 @@ function generateRecipes(config: SessionConfig, resources: Resource[]): Recipe[]
   const consumableCount = Math.min(20, Math.max(10, config.playerCount * 3));
   const selectedProducts = pickRandom(allProducts, consumableCount);
 
-  for (const item of selectedProducts) {
+  return selectedProducts.map(item => {
     const tier = Number(item.tier) as 1 | 2 | 3 | 4;
-    const seqLength = tier + 2;
-    recipes.push({
+    return {
       id: item.id,
       tier,
-      type: 'consumable',
-      sequence: randomSequence(resourceIds, seqLength),
-    });
-  }
-
-  return recipes;
+      type: 'consumable' as const,
+      sequence: randomSequence(resourceIds, tier + 2),
+    };
+  });
 }
 
 // Step 3: Initialize market
 function initializeMarket(config: SessionConfig, resources: Resource[], recipes: Recipe[]): MarketState {
   const market: MarketState = {
     resources: {},
-    productionGoods: {},
     consumables: {},
     recipeListings: [],
   };
@@ -153,17 +131,11 @@ function initializeMarket(config: SessionConfig, resources: Resource[], recipes:
   }
 
   for (const recipe of recipes) {
-    const entry: MarketEntry = {
+    market.consumables[recipe.id] = {
       supply: 0,
       price: BASE_PRICES[recipe.tier],
       baseConsumptionRate: 0,
     };
-
-    if (recipe.type === 'production_good') {
-      market.productionGoods[recipe.id] = entry;
-    } else {
-      market.consumables[recipe.id] = entry;
-    }
   }
 
   return market;

@@ -6,11 +6,6 @@ export interface RawElement {
   name: string;
 }
 
-export interface RawProductionGood {
-  id: string;
-  tier: number;
-}
-
 export interface RawProduct {
   id: string;
   tier: number;
@@ -38,10 +33,6 @@ export function loadMetalElements(): RawElement[] {
 
 export function loadOrganicElements(): RawElement[] {
   return parseCsv<RawElement>('organic_elements.csv');
-}
-
-export function loadProductionGoods(): RawProductionGood[] {
-  return parseCsv<RawProductionGood>('production_goods.csv');
 }
 
 export function loadMetalProducts(): RawProduct[] {

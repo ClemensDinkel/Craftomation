@@ -46,7 +46,6 @@ export interface Player {
   id: string;
   name: string;
   resources: Record<string, number>;        // resourceId -> amount
-  productionGoods: Record<string, number>;  // itemId -> amount
   consumables: Record<string, number>;      // itemId -> amount
   knownRecipes: string[];                   // recipeIds
   technologies: string[];
@@ -77,7 +76,7 @@ export interface ManufacturingJob {
 export interface Recipe {
   id: string;
   tier: 1 | 2 | 3 | 4;
-  type: 'production_good' | 'consumable';
+  type: 'consumable';
   sequence: string[];     // Array of Resource-IDs (length = tier + 2, min 3)
   // Display name & description resolved via i18n: tItemName(id), tItemDesc(id)
 }
@@ -101,7 +100,6 @@ export interface RecipeListing {
 
 export interface MarketState {
   resources: Record<string, MarketEntry>;
-  productionGoods: Record<string, MarketEntry>;
   consumables: Record<string, MarketEntry>;
   recipeListings: RecipeListing[];
 }

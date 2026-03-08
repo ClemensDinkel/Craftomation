@@ -52,3 +52,8 @@ export function t(key: string): string {
 export function setFallbackLocale(locale: Locale): void {
   _fallbackLocale = locale;
 }
+
+export function tItemName(itemId: string): string {
+  const key = `item.${itemId}`;
+  return translations[_fallbackLocale][key] ?? itemId;
+}

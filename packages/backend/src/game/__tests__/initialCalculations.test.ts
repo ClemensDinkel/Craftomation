@@ -48,30 +48,19 @@ describe('runInitialCalculations', () => {
     }
   });
 
-  it('should generate production_good recipes for all production goods', () => {
-    const config = createConfig();
-    runInitialCalculations(config);
-
-    const recipes = gameState.getRecipes();
-    const goods = recipes.filter(r => r.type === 'production_good');
-    expect(goods.length).toBe(15); // 15 production goods in CSV
-  });
-
   it('should generate consumable recipes clamped between 10 and 20', () => {
     // playerCount=2 → 2*3=6, clamped to 10
     const configLow = createConfig({ playerCount: 2 });
     runInitialCalculations(configLow);
     const recipesLow = gameState.getRecipes();
-    const consumablesLow = recipesLow.filter(r => r.type === 'consumable');
-    expect(consumablesLow.length).toBe(10);
+    expect(recipesLow.length).toBe(10);
 
     // playerCount=10 → 10*3=30, clamped to 20
     gameState.createSession('TEST02');
     const configHigh = createConfig({ playerCount: 10 });
     runInitialCalculations(configHigh);
     const recipesHigh = gameState.getRecipes();
-    const consumablesHigh = recipesHigh.filter(r => r.type === 'consumable');
-    expect(consumablesHigh.length).toBe(20);
+    expect(recipesHigh.length).toBe(20);
   });
 
   it('should create recipe sequences with correct length (tier + 2)', () => {
@@ -114,16 +103,12 @@ describe('runInitialCalculations', () => {
     }
   });
 
-  it('should initialize market consumables/goods at supply=0, consumption=0', () => {
+  it('should initialize market consumables at supply=0, consumption=0', () => {
     const config = createConfig();
     runInitialCalculations(config);
 
     const market = gameState.getMarket();
 
-    for (const entry of Object.values(market.productionGoods)) {
-      expect(entry.supply).toBe(0);
-      expect(entry.baseConsumptionRate).toBe(0);
-    }
     for (const entry of Object.values(market.consumables)) {
       expect(entry.supply).toBe(0);
       expect(entry.baseConsumptionRate).toBe(0);
@@ -139,9 +124,7 @@ describe('runInitialCalculations', () => {
     const tierPrices: Record<number, number> = { 1: 10, 2: 25, 3: 60, 4: 150 };
 
     for (const recipe of recipes) {
-      const entry = recipe.type === 'production_good'
-        ? market.productionGoods[recipe.id]
-        : market.consumables[recipe.id];
+      const entry = market.consumables[recipe.id];
       expect(entry.price).toBe(tierPrices[recipe.tier]);
     }
   });

@@ -25,7 +25,6 @@ function createDefaultConfig(sessionId: string): SessionConfig {
 function createDefaultMarket(): MarketState {
   return {
     resources: {},
-    productionGoods: {},
     consumables: {},
     recipeListings: [],
   };
