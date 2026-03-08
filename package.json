@@ -1,0 +1,18 @@
+{
+  "name": "craftomation",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "packages/backend",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @craftomation/shared\" \"npm run dev -w @craftomation/backend\" \"npm run dev -w @craftomation/frontend\"",
+    "build": "npm run build -w @craftomation/shared && npm run build -w @craftomation/backend && npm run build -w @craftomation/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
