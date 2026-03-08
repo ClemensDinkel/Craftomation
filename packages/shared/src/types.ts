@@ -75,11 +75,10 @@ export interface ManufacturingJob {
 
 export interface Recipe {
   id: string;
-  name: string;
   tier: 1 | 2 | 3 | 4;
   type: 'production_good' | 'consumable';
   sequence: string[];     // Array of Resource-IDs (length = tier + 2, min 3)
-  description?: string;   // Only for production goods
+  // Display name & description resolved via i18n: tItemName(id), tItemDesc(id)
 }
 
 // ==========================================
