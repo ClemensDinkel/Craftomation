@@ -3,6 +3,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { WSMessage, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { v4 as uuidv4 } from 'uuid';
+import { handleAddPlayer, handleUpdatePlayerStatus, handleChangeMineResource } from '../handlers/mineHandler';
 import url from 'url';
 
 let wss: WebSocketServer;
@@ -52,11 +53,14 @@ function handleMessage(clientId: string, message: WSMessage): void {
     case WSMessageType.LEAVE_SESSION:
       // TODO: Handle leave
       break;
+    case WSMessageType.ADD_PLAYER:
+      handleAddPlayer(message.payload as { playerName: string });
+      break;
     case WSMessageType.UPDATE_PLAYER_STATUS:
-      // TODO: Handle player status update
+      handleUpdatePlayerStatus(message.payload as { playerId: string; active: boolean });
       break;
     case WSMessageType.CHANGE_MINE_RESOURCE:
-      // TODO: Handle mine resource change
+      handleChangeMineResource(message.payload as { playerId: string; resourceId: string });
       break;
     case WSMessageType.ADD_MANUFACTURING_JOB:
       // TODO: Handle add manufacturing job

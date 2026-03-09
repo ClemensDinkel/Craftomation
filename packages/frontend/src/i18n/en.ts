@@ -58,6 +58,16 @@ export const en: Record<string, string> = {
   'module.influencer': 'Influencer',
   'module.warehouse': 'Warehouse',
 
+  // Mine Module
+  'mine.title': 'Module Mine',
+  'mine.addPlayer': 'Add Player',
+  'mine.newPlayer': 'New Player',
+  'mine.playerNamePlaceholder': 'Enter player name',
+  'mine.noPlayers': 'No players yet',
+  'mine.active': 'Active',
+  'mine.inactive': 'Inactive',
+  'mine.selectResource': 'Select resource',
+
   // Common
   'common.back': 'Back',
   'common.cancel': 'Cancel',
