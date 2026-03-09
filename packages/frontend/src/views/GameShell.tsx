@@ -2,6 +2,7 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Badge } from '@/components/ui';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { MineModule } from '@/components/modules/MineModule';
 
 export function GameShell() {
@@ -11,7 +12,7 @@ export function GameShell() {
   const wsUrl = state.sessionId
     ? `ws://${window.location.hostname}:3001?sessionId=${state.sessionId}`
     : null;
-  const { status } = useWebSocket(wsUrl);
+  const { status, send } = useWebSocket(wsUrl);
 
   const statusColor = status === 'connected' ? 'green' : status === 'reconnecting' ? 'yellow' : 'red';
   const statusText = t(`game.${status}`);
@@ -24,18 +25,23 @@ export function GameShell() {
           <h1 className="text-lg font-bold text-white">Craftomation</h1>
           <span className="text-gray-500 font-mono text-sm">{state.sessionId}</span>
         </div>
-        <Badge color={statusColor}>{statusText}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge color={statusColor}>{statusText}</Badge>
+          <LanguageToggle inline />
+        </div>
       </header>
 
       {/* Module Content */}
       <main className="flex-1 p-4">
-        <ModuleRouter moduleType={state.moduleType} />
+        <ModuleRouter moduleType={state.moduleType} send={send} />
       </main>
     </div>
   );
 }
 
-function ModuleRouter({ moduleType }: { moduleType: string | null }) {
+import type { WSMessage } from '@craftomation/shared';
+
+function ModuleRouter({ moduleType, send }: { moduleType: string | null; send: (msg: WSMessage) => void }) {
   const { t } = useLocale();
 
   if (!moduleType) {
@@ -44,7 +50,7 @@ function ModuleRouter({ moduleType }: { moduleType: string | null }) {
 
   switch (moduleType) {
     case 'mine':
-      return <MineModule />;
+      return <MineModule send={send} />;
     default:
       return (
         <div className="flex items-center justify-center h-64 bg-gray-800 rounded-xl">

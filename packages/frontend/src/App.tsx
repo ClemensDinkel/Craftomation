@@ -38,14 +38,21 @@ function LocaleProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AppContent() {
+  const { state } = useGame();
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {state.view !== 'game' && state.view !== 'setup' && <LanguageToggle />}
+      <ViewRouter />
+    </div>
+  );
+}
+
 function App() {
   return (
     <LocaleProvider>
       <GameProvider>
-        <div className="min-h-screen bg-gray-900 text-white">
-          <LanguageToggle />
-          <ViewRouter />
-        </div>
+        <AppContent />
       </GameProvider>
     </LocaleProvider>
   );

@@ -1,0 +1,296 @@
+{
+  "session": {
+    "sessionId": "VBFFN9",
+    "playerCount": 4,
+    "gameSpeed": 1,
+    "consumptionRate": 1,
+    "resourceTypeCount": 6,
+    "activeModules": [
+      "mine",
+      "manufacturing",
+      "lab",
+      "auction"
+    ]
+  },
+  "players": {},
+  "resources": [
+    {
+      "id": "luminum",
+      "name": "Luminum",
+      "color": "#E74C3C",
+      "initialLetter": "L"
+    },
+    {
+      "id": "heliorum",
+      "name": "Heliorum",
+      "color": "#3498DB",
+      "initialLetter": "H"
+    },
+    {
+      "id": "vibranium",
+      "name": "Vibranium",
+      "color": "#2ECC71",
+      "initialLetter": "V"
+    },
+    {
+      "id": "wyrium",
+      "name": "Wyrium",
+      "color": "#F39C12",
+      "initialLetter": "W"
+    },
+    {
+      "id": "ignirum",
+      "name": "Ignirum",
+      "color": "#9B59B6",
+      "initialLetter": "I"
+    },
+    {
+      "id": "titanum",
+      "name": "Titanum",
+      "color": "#1ABC9C",
+      "initialLetter": "T"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "climate_dome",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "heliorum",
+        "luminum",
+        "luminum",
+        "titanum",
+        "wyrium",
+        "ignirum"
+      ]
+    },
+    {
+      "id": "laptop",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "vibranium",
+        "wyrium",
+        "heliorum",
+        "wyrium"
+      ]
+    },
+    {
+      "id": "shield",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "heliorum",
+        "heliorum",
+        "wyrium"
+      ]
+    },
+    {
+      "id": "door",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "vibranium",
+        "heliorum",
+        "vibranium"
+      ]
+    },
+    {
+      "id": "hologram_phone",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "titanum",
+        "ignirum",
+        "vibranium",
+        "luminum",
+        "wyrium",
+        "vibranium"
+      ]
+    },
+    {
+      "id": "power_storage",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "wyrium",
+        "ignirum",
+        "vibranium",
+        "titanum",
+        "titanum"
+      ]
+    },
+    {
+      "id": "controller",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "heliorum",
+        "luminum",
+        "heliorum",
+        "luminum"
+      ]
+    },
+    {
+      "id": "blender",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "wyrium",
+        "wyrium",
+        "wyrium",
+        "wyrium"
+      ]
+    },
+    {
+      "id": "media_hub",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "heliorum",
+        "heliorum",
+        "luminum",
+        "vibranium",
+        "ignirum"
+      ]
+    },
+    {
+      "id": "heat_pump",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "ignirum",
+        "ignirum",
+        "titanum",
+        "luminum",
+        "wyrium"
+      ]
+    },
+    {
+      "id": "heart_implant",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "ignirum",
+        "wyrium",
+        "titanum",
+        "ignirum",
+        "titanum",
+        "ignirum"
+      ]
+    },
+    {
+      "id": "e_bike",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "titanum",
+        "heliorum",
+        "wyrium",
+        "heliorum",
+        "wyrium"
+      ]
+    }
+  ],
+  "market": {
+    "resources": {
+      "luminum": {
+        "supply": 97.328,
+        "price": 5.14,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "heliorum": {
+        "supply": 97.328,
+        "price": 5.14,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "vibranium": {
+        "supply": 97.328,
+        "price": 5.14,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "wyrium": {
+        "supply": 97.328,
+        "price": 5.14,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "ignirum": {
+        "supply": 97.328,
+        "price": 5.14,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "titanum": {
+        "supply": 97.328,
+        "price": 5.14,
+        "baseConsumptionRate": 0.5333333333333333
+      }
+    },
+    "consumables": {
+      "climate_dome": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "laptop": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "shield": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "door": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "hologram_phone": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "power_storage": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "controller": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "blender": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "media_hub": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "heat_pump": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "heart_implant": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "e_bike": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      }
+    },
+    "recipeListings": []
+  },
+  "tick": 5,
+  "running": true,
+  "startedAt": null
+}

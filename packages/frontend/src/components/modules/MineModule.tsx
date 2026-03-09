@@ -1,18 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { WSMessageType } from '@craftomation/shared';
-import type { Player, Resource } from '@craftomation/shared';
+import type { Player, Resource, WSMessage } from '@craftomation/shared';
 import { Button, Input, Dialog } from '@/components/ui';
 
-export function MineModule() {
+interface MineModuleProps {
+  send: (msg: WSMessage) => void;
+}
+
+export function MineModule({ send }: MineModuleProps) {
   const { t } = useLocale();
   const { state } = useGame();
-  const wsUrl = state.sessionId
-    ? `ws://${window.location.hostname}:3001?sessionId=${state.sessionId}`
-    : null;
-  const { send } = useWebSocket(wsUrl);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');

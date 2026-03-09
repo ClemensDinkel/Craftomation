@@ -32,6 +32,7 @@ export const de: Record<string, string> = {
   'setup.consumptionRate': 'Verbrauchsrate',
   'setup.resourceTypes': 'Ressourcentypen',
   'setup.optionalModules': 'Optionale Module',
+  'setup.host': 'Host (Du)',
   'setup.startGame': 'Spiel starten',
 
   // Waiting Screen

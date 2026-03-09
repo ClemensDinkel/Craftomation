@@ -1,0 +1,312 @@
+{
+  "session": {
+    "sessionId": "AFSNMA",
+    "playerCount": 4,
+    "gameSpeed": 1,
+    "consumptionRate": 1,
+    "resourceTypeCount": 6,
+    "activeModules": [
+      "mine",
+      "manufacturing",
+      "lab",
+      "auction"
+    ]
+  },
+  "players": {
+    "f9a03175-b7f8-498d-8e77-ab81ef59cd33": {
+      "id": "f9a03175-b7f8-498d-8e77-ab81ef59cd33",
+      "name": "awdq",
+      "resources": {
+        "brontum": 9
+      },
+      "consumables": {},
+      "knownRecipes": [],
+      "technologies": [],
+      "cash": 0,
+      "activeInMine": true,
+      "currentMineResource": "brontum",
+      "manufacturingQueue": []
+    }
+  },
+  "resources": [
+    {
+      "id": "arcanum",
+      "name": "Arcanum",
+      "color": "#E74C3C",
+      "initialLetter": "A"
+    },
+    {
+      "id": "umbrium",
+      "name": "Umbrium",
+      "color": "#3498DB",
+      "initialLetter": "U"
+    },
+    {
+      "id": "cindrum",
+      "name": "Cindrum",
+      "color": "#2ECC71",
+      "initialLetter": "C"
+    },
+    {
+      "id": "brontum",
+      "name": "Brontum",
+      "color": "#F39C12",
+      "initialLetter": "B"
+    },
+    {
+      "id": "flarum",
+      "name": "Flarum",
+      "color": "#9B59B6",
+      "initialLetter": "F"
+    },
+    {
+      "id": "orichalum",
+      "name": "Orichalum",
+      "color": "#1ABC9C",
+      "initialLetter": "O"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "bowl",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "cindrum",
+        "brontum",
+        "flarum"
+      ]
+    },
+    {
+      "id": "vr_headset",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "orichalum",
+        "orichalum",
+        "flarum",
+        "arcanum",
+        "orichalum",
+        "umbrium"
+      ]
+    },
+    {
+      "id": "valve",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "umbrium",
+        "umbrium",
+        "brontum"
+      ]
+    },
+    {
+      "id": "heat_pump",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "umbrium",
+        "arcanum",
+        "cindrum",
+        "brontum",
+        "cindrum"
+      ]
+    },
+    {
+      "id": "energy_cell",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "umbrium",
+        "orichalum",
+        "brontum",
+        "arcanum",
+        "brontum",
+        "orichalum"
+      ]
+    },
+    {
+      "id": "air_conditioner",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "cindrum",
+        "brontum",
+        "orichalum",
+        "brontum",
+        "arcanum"
+      ]
+    },
+    {
+      "id": "companion_robot",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "brontum",
+        "cindrum",
+        "orichalum",
+        "flarum",
+        "flarum",
+        "cindrum"
+      ]
+    },
+    {
+      "id": "controller",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "flarum",
+        "brontum",
+        "umbrium",
+        "arcanum"
+      ]
+    },
+    {
+      "id": "camera",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "umbrium",
+        "cindrum",
+        "cindrum",
+        "cindrum"
+      ]
+    },
+    {
+      "id": "video_doorbell",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "arcanum",
+        "cindrum",
+        "brontum",
+        "arcanum",
+        "cindrum"
+      ]
+    },
+    {
+      "id": "washing_machine",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "flarum",
+        "flarum",
+        "umbrium",
+        "flarum"
+      ]
+    },
+    {
+      "id": "care_assistant",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "orichalum",
+        "cindrum",
+        "cindrum",
+        "orichalum",
+        "umbrium",
+        "brontum"
+      ]
+    }
+  ],
+  "market": {
+    "resources": {
+      "arcanum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "umbrium": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "cindrum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "brontum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "flarum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "orichalum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      }
+    },
+    "consumables": {
+      "bowl": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "vr_headset": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "valve": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "heat_pump": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "energy_cell": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "air_conditioner": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "companion_robot": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "controller": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "camera": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "video_doorbell": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "washing_machine": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "care_assistant": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      }
+    },
+    "recipeListings": []
+  },
+  "tick": 11,
+  "running": true,
+  "startedAt": null
+}

@@ -1,0 +1,292 @@
+{
+  "session": {
+    "sessionId": "B9XJZ5",
+    "playerCount": 4,
+    "gameSpeed": 1,
+    "consumptionRate": 1,
+    "resourceTypeCount": 6,
+    "activeModules": [
+      "mine",
+      "manufacturing",
+      "lab",
+      "auction"
+    ]
+  },
+  "players": {},
+  "resources": [
+    {
+      "id": "solarium",
+      "name": "Solarium",
+      "color": "#E74C3C",
+      "initialLetter": "S"
+    },
+    {
+      "id": "yttrium",
+      "name": "Yttrium",
+      "color": "#3498DB",
+      "initialLetter": "Y"
+    },
+    {
+      "id": "rutilum",
+      "name": "Rutilum",
+      "color": "#2ECC71",
+      "initialLetter": "R"
+    },
+    {
+      "id": "nobilum",
+      "name": "Nobilum",
+      "color": "#F39C12",
+      "initialLetter": "N"
+    },
+    {
+      "id": "zornium",
+      "name": "Zornium",
+      "color": "#9B59B6",
+      "initialLetter": "Z"
+    },
+    {
+      "id": "terralum",
+      "name": "Terralum",
+      "color": "#1ABC9C",
+      "initialLetter": "T"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "anchor",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "nobilum",
+        "nobilum",
+        "solarium"
+      ]
+    },
+    {
+      "id": "window_robot",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "yttrium",
+        "terralum",
+        "zornium",
+        "zornium",
+        "rutilum"
+      ]
+    },
+    {
+      "id": "vacuum_robot",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "rutilum",
+        "terralum",
+        "nobilum",
+        "rutilum",
+        "rutilum"
+      ]
+    },
+    {
+      "id": "shield",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "yttrium",
+        "nobilum",
+        "nobilum"
+      ]
+    },
+    {
+      "id": "cutlery",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "solarium",
+        "solarium",
+        "yttrium"
+      ]
+    },
+    {
+      "id": "hologram_phone",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "rutilum",
+        "zornium",
+        "nobilum",
+        "yttrium",
+        "solarium",
+        "zornium"
+      ]
+    },
+    {
+      "id": "radiator",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "terralum",
+        "nobilum",
+        "solarium"
+      ]
+    },
+    {
+      "id": "climate_dome",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "solarium",
+        "rutilum",
+        "rutilum",
+        "nobilum",
+        "nobilum",
+        "yttrium"
+      ]
+    },
+    {
+      "id": "exoskeleton",
+      "tier": 4,
+      "type": "consumable",
+      "sequence": [
+        "zornium",
+        "yttrium",
+        "nobilum",
+        "zornium",
+        "yttrium",
+        "rutilum"
+      ]
+    },
+    {
+      "id": "toaster",
+      "tier": 2,
+      "type": "consumable",
+      "sequence": [
+        "yttrium",
+        "rutilum",
+        "nobilum",
+        "terralum"
+      ]
+    },
+    {
+      "id": "chain",
+      "tier": 1,
+      "type": "consumable",
+      "sequence": [
+        "solarium",
+        "nobilum",
+        "rutilum"
+      ]
+    },
+    {
+      "id": "delivery_drone",
+      "tier": 3,
+      "type": "consumable",
+      "sequence": [
+        "zornium",
+        "terralum",
+        "rutilum",
+        "rutilum",
+        "terralum"
+      ]
+    }
+  ],
+  "market": {
+    "resources": {
+      "solarium": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "yttrium": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "rutilum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "nobilum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "zornium": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      },
+      "terralum": {
+        "supply": 94.104,
+        "price": 5.31,
+        "baseConsumptionRate": 0.5333333333333333
+      }
+    },
+    "consumables": {
+      "anchor": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "window_robot": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "vacuum_robot": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      },
+      "shield": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "cutlery": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "hologram_phone": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "radiator": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "climate_dome": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "exoskeleton": {
+        "supply": 0,
+        "price": 1500,
+        "baseConsumptionRate": 0
+      },
+      "toaster": {
+        "supply": 0,
+        "price": 250,
+        "baseConsumptionRate": 0
+      },
+      "chain": {
+        "supply": 0,
+        "price": 100,
+        "baseConsumptionRate": 0
+      },
+      "delivery_drone": {
+        "supply": 0,
+        "price": 600,
+        "baseConsumptionRate": 0
+      }
+    },
+    "recipeListings": []
+  },
+  "tick": 11,
+  "running": true,
+  "startedAt": null
+}

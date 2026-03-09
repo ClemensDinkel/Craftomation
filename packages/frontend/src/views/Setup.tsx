@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
-import { Button, Card, Input, Slider } from '@/components/ui';
+import { Button, Card, Input, Select, Slider } from '@/components/ui';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import type { ModuleType } from '@craftomation/shared';
 
 const API_BASE = `http://${window.location.hostname}:3001`;
@@ -24,6 +25,7 @@ export function Setup() {
   const [consumptionRate, setConsumptionRate] = useState(1.0);
   const [resourceTypes, setResourceTypes] = useState(6);
   const [activeOptional, setActiveOptional] = useState<Set<ModuleType>>(new Set());
+  const [hostModule, setHostModule] = useState<ModuleType>('mine');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +80,7 @@ export function Setup() {
 
       const data = await res.json();
       dispatch({ type: 'SET_GAME_STATE', gameState: data.state });
+      dispatch({ type: 'SET_MODULE', moduleType: hostModule });
       dispatch({ type: 'NAVIGATE', view: 'game' });
     } catch {
       setError(t('common.error'));
@@ -95,14 +98,17 @@ export function Setup() {
           </Button>
           <h1 className="text-xl font-bold text-white">{t('setup.title')}</h1>
         </div>
-        <button
-          onClick={copySessionId}
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-sm transition-colors"
-        >
-          <span className="text-gray-400">{t('setup.sessionId')}:</span>
-          <span className="text-white font-mono font-bold tracking-widest">{state.sessionId}</span>
-          <span className="text-xs text-indigo-400">{copied ? t('setup.copied') : ''}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={copySessionId}
+            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-sm transition-colors"
+          >
+            <span className="text-gray-400">{t('setup.sessionId')}:</span>
+            <span className="text-white font-mono font-bold tracking-widest">{state.sessionId}</span>
+            <span className="text-xs text-indigo-400">{copied ? t('setup.copied') : ''}</span>
+          </button>
+          <LanguageToggle inline />
+        </div>
       </div>
 
       {/* Scrollable Content */}
@@ -115,8 +121,28 @@ export function Setup() {
 
         {/* Connected Devices */}
         <Card>
-          <h2 className="text-sm font-medium text-gray-400 mb-2">{t('setup.connectedDevices')}</h2>
-          <p className="text-gray-500 text-sm">{t('setup.noDevices')}</p>
+          <h2 className="text-sm font-medium text-gray-400 mb-3">{t('setup.connectedDevices')}</h2>
+          <div className="flex flex-col gap-2">
+            {/* Host device */}
+            <div className="flex items-center gap-3 rounded-lg border border-indigo-600/50 bg-indigo-900/20 px-3 py-2">
+              <span className="text-white font-medium flex-1">{t('setup.host')}</span>
+              <Select
+                options={[
+                  ...(['mine', 'manufacturing', 'lab', 'auction'] as ModuleType[]).map(m => ({
+                    value: m,
+                    label: t(`module.${m}`),
+                  })),
+                  ...Array.from(activeOptional).map(m => ({
+                    value: m,
+                    label: t(`module.${m}`),
+                  })),
+                ]}
+                value={hostModule}
+                onChange={e => setHostModule(e.target.value as ModuleType)}
+                className="text-sm"
+              />
+            </div>
+          </div>
         </Card>
 
         {/* Player Count */}
