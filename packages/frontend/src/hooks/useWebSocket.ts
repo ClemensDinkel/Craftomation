@@ -15,10 +15,12 @@ export function useWebSocket(url: string | null) {
   const connect = useCallback(() => {
     if (!url) return;
 
+    retriesRef.current = 0;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      if (wsRef.current !== ws) return;
       setStatus('connected');
       retriesRef.current = 0;
     };
@@ -33,6 +35,7 @@ export function useWebSocket(url: string | null) {
     };
 
     ws.onclose = () => {
+      if (wsRef.current !== ws) return;
       setStatus('disconnected');
       wsRef.current = null;
 
@@ -49,9 +52,10 @@ export function useWebSocket(url: string | null) {
   }, [url, dispatch]);
 
   const disconnect = useCallback(() => {
-    retriesRef.current = MAX_RETRIES; // prevent reconnect
-    wsRef.current?.close();
+    const ws = wsRef.current;
     wsRef.current = null;
+    retriesRef.current = MAX_RETRIES; // prevent reconnect from onclose
+    ws?.close();
     setStatus('disconnected');
   }, []);
 
