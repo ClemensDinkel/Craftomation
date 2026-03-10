@@ -33,12 +33,49 @@ function processMining(players: Player[]): void {
 
 function processManufacturing(players: Player[]): void {
   const tickMs = TICK_SECONDS * 1000;
+  const config = gameState.getConfig();
+  const speed = config?.gameSpeed ?? 1.0;
 
   for (const player of players) {
     if (player.manufacturingQueue.length === 0) continue;
 
     const job = player.manufacturingQueue[0];
     if (job.completed) continue;
+
+    // Consume resources when job starts (first tick)
+    if (!job.resourcesConsumed) {
+      const recipe = gameState.getRecipes().find(r => r.id === job.recipeId);
+      if (!recipe) {
+        player.manufacturingQueue.shift();
+        continue;
+      }
+
+      // Check if player has all required resources
+      const cost: Record<string, number> = {};
+      for (const resId of recipe.sequence) {
+        cost[resId] = (cost[resId] ?? 0) + 1;
+      }
+
+      let canAfford = true;
+      for (const [resId, needed] of Object.entries(cost)) {
+        if ((player.resources[resId] ?? 0) < needed) {
+          canAfford = false;
+          break;
+        }
+      }
+
+      if (!canAfford) {
+        // Can't afford — skip this tick, don't remove (resources might come later)
+        continue;
+      }
+
+      // Deduct resources
+      for (const [resId, needed] of Object.entries(cost)) {
+        player.resources[resId] -= needed;
+      }
+      job.resourcesConsumed = true;
+      job.startedAt = Date.now();
+    }
 
     job.remainingMs -= tickMs;
 
@@ -50,7 +87,29 @@ function processManufacturing(players: Player[]): void {
         player.consumables[recipe.id] = (player.consumables[recipe.id] ?? 0) + 1;
       }
 
+      const isRepeat = job.repeat;
+      const recipeId = job.recipeId;
       player.manufacturingQueue.shift();
+
+      // If repeat, re-queue
+      if (isRepeat) {
+        const repeatRecipe = gameState.getRecipes().find(r => r.id === recipeId);
+        if (repeatRecipe) {
+          const baseDuration = { 1: 30_000, 2: 40_000, 3: 50_000, 4: 60_000 }[repeatRecipe.tier] ?? 30_000;
+          const duration = Math.round(baseDuration / Math.max(speed, 0.1));
+          player.manufacturingQueue.push({
+            id: `${recipeId}-${Date.now()}`,
+            recipeId,
+            playerId: player.id,
+            startedAt: 0,
+            duration,
+            remainingMs: duration,
+            completed: false,
+            repeat: true,
+            resourcesConsumed: false,
+          });
+        }
+      }
     }
   }
 }

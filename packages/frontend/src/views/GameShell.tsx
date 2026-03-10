@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { MineModule } from '@/components/modules/MineModule';
+import { ManufacturingModule } from '@/components/modules/ManufacturingModule';
 
 export function GameShell() {
   const { t } = useLocale();
@@ -51,6 +52,8 @@ function ModuleRouter({ moduleType, send }: { moduleType: string | null; send: (
   switch (moduleType) {
     case 'mine':
       return <MineModule send={send} />;
+    case 'manufacturing':
+      return <ManufacturingModule send={send} />;
     default:
       return (
         <div className="flex items-center justify-center h-64 bg-gray-800 rounded-xl">

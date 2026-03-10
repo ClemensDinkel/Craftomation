@@ -73,6 +73,20 @@ export const de: Record<string, string> = {
   'mine.boosted': 'Boost',
   'mine.selectResource': 'Ressource wählen',
 
+  // Manufacturing Module
+  'manufacturing.title': 'Fertigungshalle',
+  'manufacturing.noPlayers': 'Noch keine Spieler vorhanden',
+  'manufacturing.queue': 'Produktionswarteschlange',
+  'manufacturing.emptyQueue': 'Warteschlange ist leer',
+  'manufacturing.recipes': 'Bekannte Rezepte',
+  'manufacturing.noRecipes': 'Noch keine Rezepte bekannt',
+  'manufacturing.inventory': 'Vorräte',
+  'manufacturing.resources': 'Rohstoffe',
+  'manufacturing.consumables': 'Produkte',
+  'manufacturing.noItems': 'Keine',
+  'manufacturing.addOnce': 'Einmal hinzufügen',
+  'manufacturing.repeatToggle': 'Dauerproduktion umschalten',
+
   // Common
   'common.back': 'Zurück',
   'common.cancel': 'Abbrechen',

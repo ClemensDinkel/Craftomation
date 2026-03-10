@@ -4,6 +4,7 @@ import { WSMessage, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { v4 as uuidv4 } from 'uuid';
 import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
+import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
 import url from 'url';
 
 let wss: WebSocketServer;
@@ -63,10 +64,13 @@ function handleMessage(clientId: string, message: WSMessage): void {
       handleChangeMineResource(message.payload as { playerId: string; resourceId: string });
       break;
     case WSMessageType.ADD_MANUFACTURING_JOB:
-      // TODO: Handle add manufacturing job
+      handleAddManufacturingJob(message.payload as { playerId: string; recipeId: string; repeat: boolean });
       break;
     case WSMessageType.REMOVE_MANUFACTURING_JOB:
-      // TODO: Handle remove manufacturing job
+      handleRemoveManufacturingJob(message.payload as { playerId: string; jobIndex: number });
+      break;
+    case WSMessageType.DEBUG_UNLOCK_RECIPE:
+      handleDebugUnlockRecipe(message.payload as { playerId: string; recipeId: string });
       break;
     case WSMessageType.LAB_EXPERIMENT:
       // TODO: Handle lab experiment

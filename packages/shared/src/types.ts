@@ -68,6 +68,8 @@ export interface ManufacturingJob {
   duration: number;       // ms total
   remainingMs: number;    // ms remaining, decremented each tick
   completed: boolean;
+  repeat: boolean;        // infinite repeat mode
+  resourcesConsumed: boolean; // whether resources have been deducted for this job
 }
 
 // ==========================================
@@ -138,6 +140,7 @@ export enum WSMessageType {
   MARKET_SELL = 'MARKET_SELL',
   LIST_RECIPE = 'LIST_RECIPE',
   BUY_RECIPE = 'BUY_RECIPE',
+  DEBUG_UNLOCK_RECIPE = 'DEBUG_UNLOCK_RECIPE',
 
   // Server -> Client
   GAME_STATE_UPDATE = 'GAME_STATE_UPDATE',

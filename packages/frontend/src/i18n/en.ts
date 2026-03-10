@@ -73,6 +73,20 @@ export const en: Record<string, string> = {
   'mine.boosted': 'Boost',
   'mine.selectResource': 'Select resource',
 
+  // Manufacturing Module
+  'manufacturing.title': 'Manufacturing',
+  'manufacturing.noPlayers': 'No players yet',
+  'manufacturing.queue': 'Production Queue',
+  'manufacturing.emptyQueue': 'Queue is empty',
+  'manufacturing.recipes': 'Known Recipes',
+  'manufacturing.noRecipes': 'No recipes known yet',
+  'manufacturing.inventory': 'Inventory',
+  'manufacturing.resources': 'Resources',
+  'manufacturing.consumables': 'Products',
+  'manufacturing.noItems': 'None',
+  'manufacturing.addOnce': 'Add once',
+  'manufacturing.repeatToggle': 'Toggle repeat',
+
   // Common
   'common.back': 'Back',
   'common.cancel': 'Cancel',

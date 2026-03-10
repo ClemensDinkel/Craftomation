@@ -1,0 +1,343 @@
+import { useState, useMemo, useEffect } from 'react';
+import { useLocale } from '@/i18n';
+import { WSMessageType } from '@craftomation/shared';
+import type { Player, Resource, Recipe, WSMessage, ManufacturingJob } from '@craftomation/shared';
+import { Button, Dialog } from '@/components/ui';
+
+interface Props {
+  player: Player;
+  resources: Resource[];
+  recipes: Recipe[];
+  send: (msg: WSMessage) => void;
+  onBack: () => void;
+}
+
+const isDev = import.meta.env.DEV;
+
+export function PlayerManufacturingView({ player, resources, recipes, send, onBack }: Props) {
+  const { t } = useLocale();
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [debugDialogOpen, setDebugDialogOpen] = useState(false);
+
+  const knownRecipes = useMemo(() => {
+    const known = new Set(player.knownRecipes);
+    return recipes
+      .filter(r => known.has(r.id))
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'consumable' ? -1 : 1;
+        return t(`item.${a.id}`).localeCompare(t(`item.${b.id}`));
+      });
+  }, [player.knownRecipes, recipes, t]);
+
+  const unknownRecipes = useMemo(() => {
+    const known = new Set(player.knownRecipes);
+    return recipes.filter(r => !known.has(r.id));
+  }, [player.knownRecipes, recipes]);
+
+  const resourceMap = useMemo(() => {
+    const map: Record<string, Resource> = {};
+    for (const r of resources) map[r.id] = r;
+    return map;
+  }, [resources]);
+
+  const handleAddJob = (recipeId: string, repeat: boolean) => {
+    send({
+      type: WSMessageType.ADD_MANUFACTURING_JOB,
+      payload: { playerId: player.id, recipeId, repeat },
+    });
+  };
+
+  const handleRemoveJob = (jobIndex: number) => {
+    send({
+      type: WSMessageType.REMOVE_MANUFACTURING_JOB,
+      payload: { playerId: player.id, jobIndex },
+    });
+  };
+
+  const handleDebugUnlock = (recipeId: string) => {
+    send({
+      type: WSMessageType.DEBUG_UNLOCK_RECIPE,
+      payload: { playerId: player.id, recipeId },
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 bg-gray-900 -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-gray-800 flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          {t('common.back')}
+        </Button>
+        <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
+        <div className="ml-auto flex gap-2">
+          {isDev && (
+            <Button variant="secondary" size="sm" onClick={() => setDebugDialogOpen(true)}>
+              Debug
+            </Button>
+          )}
+          <Button variant="secondary" size="sm" onClick={() => setInventoryOpen(true)}>
+            {t('manufacturing.inventory')}
+          </Button>
+        </div>
+      </div>
+
+      {/* Inventory Dialog */}
+      <InventoryDialog
+        open={inventoryOpen}
+        onClose={() => setInventoryOpen(false)}
+        player={player}
+        resourceMap={resourceMap}
+      />
+
+      {/* Debug Dialog */}
+      {isDev && (
+        <Dialog open={debugDialogOpen} onClose={() => setDebugDialogOpen(false)} title="Debug: Unlock Recipe">
+          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+            {unknownRecipes.length === 0 && (
+              <p className="text-gray-500 text-sm">All recipes unlocked</p>
+            )}
+            {unknownRecipes.map(recipe => (
+              <button
+                key={recipe.id}
+                onClick={() => { handleDebugUnlock(recipe.id); setDebugDialogOpen(false); }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-left transition-colors"
+              >
+                <span className="text-white text-sm flex-1">{t(`item.${recipe.id}`)}</span>
+                <TierBadge tier={recipe.tier} />
+              </button>
+            ))}
+          </div>
+        </Dialog>
+      )}
+
+      {/* Manufacturing Queue */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-400 mb-2">{t('manufacturing.queue')}</h3>
+        {player.manufacturingQueue.length === 0 ? (
+          <p className="text-gray-500 text-sm">{t('manufacturing.emptyQueue')}</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {player.manufacturingQueue.map((job, index) => (
+              <JobRow
+                key={job.id}
+                job={job}
+                isFirst={index === 0}
+                recipeName={t(`item.${job.recipeId}`)}
+                onRemove={() => handleRemoveJob(index)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Known Recipes */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-400 mb-2">{t('manufacturing.recipes')}</h3>
+        {knownRecipes.length === 0 ? (
+          <p className="text-gray-500 text-sm">{t('manufacturing.noRecipes')}</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {knownRecipes.map(recipe => (
+              <RecipeRow
+                key={recipe.id}
+                recipe={recipe}
+                resourceMap={resourceMap}
+                repeatActive={player.manufacturingQueue.some(j => j.recipeId === recipe.id && j.repeat)}
+                onAdd={() => handleAddJob(recipe.id, false)}
+                onRepeat={() => handleAddJob(recipe.id, true)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// --- Sub-components ---
+
+function JobRow({ job, isFirst, recipeName, onRemove }: {
+  job: ManufacturingJob;
+  isFirst: boolean;
+  recipeName: string;
+  onRemove: () => void;
+}) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!isFirst || !job.resourcesConsumed) return;
+    const timer = setInterval(() => setTick(t => t + 1), 500);
+    return () => clearInterval(timer);
+  }, [isFirst, job.resourcesConsumed]);
+
+  const progress = isFirst && job.resourcesConsumed
+    ? Math.min(1, Math.max(0, 1 - job.remainingMs / job.duration))
+    : 0;
+
+  const waiting = isFirst && !job.resourcesConsumed;
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-gray-700/50 bg-gray-800/60 px-3 py-2">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-white text-sm truncate">{recipeName}</span>
+          {job.repeat && (
+            <span className="text-indigo-400 text-xs font-bold">∞</span>
+          )}
+          {waiting && (
+            <span className="text-amber-400 text-xs">⏳</span>
+          )}
+        </div>
+        {isFirst && job.resourcesConsumed && (
+          <div className="mt-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        )}
+      </div>
+      <button
+        onClick={onRemove}
+        className="text-gray-500 hover:text-red-400 text-sm transition-colors shrink-0 px-1"
+      >
+        &times;
+      </button>
+    </div>
+  );
+}
+
+function RecipeRow({ recipe, resourceMap, repeatActive, onAdd, onRepeat }: {
+  recipe: Recipe;
+  resourceMap: Record<string, Resource>;
+  repeatActive: boolean;
+  onAdd: () => void;
+  onRepeat: () => void;
+}) {
+  const { t } = useLocale();
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-gray-700/50 bg-gray-800/60 px-3 py-2">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-white text-sm truncate">{t(`item.${recipe.id}`)}</span>
+          <TierBadge tier={recipe.tier} />
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {recipe.sequence.map((resId, i) => {
+            const res = resourceMap[resId];
+            if (!res) return null;
+            return (
+              <span
+                key={i}
+                className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-white"
+                style={{ backgroundColor: res.color }}
+                title={res.name}
+              >
+                {res.initialLetter}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex gap-1 shrink-0">
+        <button
+          onClick={onAdd}
+          className="w-8 h-8 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold transition-colors flex items-center justify-center"
+          title={t('manufacturing.addOnce')}
+        >
+          +
+        </button>
+        <button
+          onClick={onRepeat}
+          className={`w-8 h-8 rounded-md text-lg font-bold transition-colors flex items-center justify-center ${
+            repeatActive
+              ? 'bg-indigo-500 text-white'
+              : 'bg-gray-700 hover:bg-gray-600 text-gray-400'
+          }`}
+          title={t('manufacturing.repeatToggle')}
+        >
+          ∞
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TierBadge({ tier }: { tier: number }) {
+  const colors: Record<number, string> = {
+    1: 'bg-gray-600 text-gray-300',
+    2: 'bg-green-800 text-green-300',
+    3: 'bg-blue-800 text-blue-300',
+    4: 'bg-purple-800 text-purple-300',
+  };
+
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors[tier] ?? colors[1]}`}>
+      T{tier}
+    </span>
+  );
+}
+
+function InventoryDialog({ open, onClose, player, resourceMap }: {
+  open: boolean;
+  onClose: () => void;
+  player: Player;
+  resourceMap: Record<string, Resource>;
+}) {
+  const { t } = useLocale();
+
+  const resourceEntries = Object.entries(player.resources).filter(([, v]) => v > 0);
+  const consumableEntries = Object.entries(player.consumables).filter(([, v]) => v > 0);
+
+  return (
+    <Dialog open={open} onClose={onClose} title={t('manufacturing.inventory')}>
+      <div className="flex flex-col gap-4 max-h-80 overflow-y-auto">
+        {/* Resources */}
+        <div>
+          <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.resources')}</h4>
+          {resourceEntries.length === 0 ? (
+            <p className="text-gray-500 text-xs">{t('manufacturing.noItems')}</p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {resourceEntries.map(([resId, amount]) => {
+                const res = resourceMap[resId];
+                return (
+                  <div key={resId} className="flex items-center gap-2 text-sm">
+                    {res && (
+                      <span
+                        className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-white"
+                        style={{ backgroundColor: res.color }}
+                      >
+                        {res.initialLetter}
+                      </span>
+                    )}
+                    <span className="text-gray-300 flex-1">{res?.name ?? resId}</span>
+                    <span className="text-white font-mono">{Math.floor(amount)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Consumables */}
+        <div>
+          <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.consumables')}</h4>
+          {consumableEntries.length === 0 ? (
+            <p className="text-gray-500 text-xs">{t('manufacturing.noItems')}</p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {consumableEntries.map(([itemId, amount]) => (
+                <div key={itemId} className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-300 flex-1">{t(`item.${itemId}`)}</span>
+                  <span className="text-white font-mono">{amount}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Dialog>
+  );
+}
