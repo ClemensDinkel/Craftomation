@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
@@ -18,10 +18,7 @@ export function MineModule({ send }: MineModuleProps) {
 
   const players = useMemo(() => {
     if (!state.gameState?.players) return [];
-    const all = Object.values(state.gameState.players);
-    const active = all.filter(p => p.activeInMine).sort((a, b) => a.name.localeCompare(b.name));
-    const inactive = all.filter(p => !p.activeInMine).sort((a, b) => a.name.localeCompare(b.name));
-    return [...active, ...inactive];
+    return Object.values(state.gameState.players).sort((a, b) => a.name.localeCompare(b.name));
   }, [state.gameState?.players]);
 
   const resources: Resource[] = state.gameState?.resources ?? [];
@@ -33,18 +30,12 @@ export function MineModule({ send }: MineModuleProps) {
     setDialogOpen(false);
   };
 
-  const handleToggleActive = (player: Player) => {
-    send({
-      type: WSMessageType.UPDATE_PLAYER_STATUS,
-      payload: { playerId: player.id, active: !player.activeInMine },
-    });
+  const handleBoost = (playerId: string) => {
+    send({ type: WSMessageType.BOOST_MINE_PLAYER, payload: { playerId } });
   };
 
   const handleChangeResource = (playerId: string, resourceId: string) => {
-    send({
-      type: WSMessageType.CHANGE_MINE_RESOURCE,
-      payload: { playerId, resourceId },
-    });
+    send({ type: WSMessageType.CHANGE_MINE_RESOURCE, payload: { playerId, resourceId } });
   };
 
   return (
@@ -85,7 +76,7 @@ export function MineModule({ send }: MineModuleProps) {
             key={player.id}
             player={player}
             resources={resources}
-            onToggleActive={handleToggleActive}
+            onBoost={handleBoost}
             onChangeResource={handleChangeResource}
           />
         ))}
@@ -97,13 +88,33 @@ export function MineModule({ send }: MineModuleProps) {
 interface PlayerRowProps {
   player: Player;
   resources: Resource[];
-  onToggleActive: (player: Player) => void;
+  onBoost: (playerId: string) => void;
   onChangeResource: (playerId: string, resourceId: string) => void;
 }
 
-function PlayerRow({ player, resources, onToggleActive, onChangeResource }: PlayerRowProps) {
+function PlayerRow({ player, resources, onBoost, onChangeResource }: PlayerRowProps) {
   const { t } = useLocale();
-  const bgClass = player.activeInMine
+  const [now, setNow] = useState(Date.now());
+
+  const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
+  const isCooldown = !isBoosted && player.mineBoostCooldownUntil !== null && now < player.mineBoostCooldownUntil;
+  const isReady = !isBoosted && !isCooldown;
+
+  // Tick every second while boost or cooldown is active
+  useEffect(() => {
+    if (!player.mineBoostUntil && !player.mineBoostCooldownUntil) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [player.mineBoostUntil, player.mineBoostCooldownUntil]);
+
+  const remainingSeconds = isBoosted
+    ? Math.ceil((player.mineBoostUntil! - now) / 1000)
+    : isCooldown
+      ? Math.ceil((player.mineBoostCooldownUntil! - now) / 1000)
+      : 0;
+
+  const bgClass = isBoosted
     ? 'bg-green-900/40 border-green-700/50'
     : 'bg-gray-800/60 border-gray-700/50';
 
@@ -114,17 +125,24 @@ function PlayerRow({ player, resources, onToggleActive, onChangeResource }: Play
       <span className="flex-1 text-white font-medium truncate">{player.name}</span>
 
       <button
-        onClick={() => onToggleActive(player)}
-        className={`shrink-0 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-          player.activeInMine
-            ? 'bg-green-600 hover:bg-green-700 text-white'
-            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+        onClick={() => onBoost(player.id)}
+        disabled={!isReady}
+        className={`shrink-0 px-3 py-1 rounded-md text-sm font-medium transition-colors min-w-[5rem] ${
+          isBoosted
+            ? 'bg-green-600 text-white cursor-default'
+            : isCooldown
+              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              : 'bg-amber-600 hover:bg-amber-700 text-white'
         }`}
       >
-        {player.activeInMine ? t('mine.active') : t('mine.inactive')}
+        {isBoosted
+          ? `${t('mine.boosted')} ${remainingSeconds}s`
+          : isCooldown
+            ? `${remainingSeconds}s`
+            : t('mine.boost')}
       </button>
 
-      <div className="shrink-0 relative">
+      <div className="shrink-0">
         <div className="flex items-center gap-1.5">
           {selectedResource && (
             <span

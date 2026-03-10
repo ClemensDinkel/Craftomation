@@ -50,8 +50,9 @@ export interface Player {
   knownRecipes: string[];                   // recipeIds
   technologies: string[];
   cash: number;
-  activeInMine: boolean;
   currentMineResource: string | null;
+  mineBoostUntil: number | null;       // timestamp when boost expires
+  mineBoostCooldownUntil: number | null; // timestamp when cooldown expires
   manufacturingQueue: ManufacturingJob[];
 }
 
@@ -128,7 +129,7 @@ export enum WSMessageType {
   JOIN_SESSION = 'JOIN_SESSION',
   LEAVE_SESSION = 'LEAVE_SESSION',
   ADD_PLAYER = 'ADD_PLAYER',
-  UPDATE_PLAYER_STATUS = 'UPDATE_PLAYER_STATUS',
+  BOOST_MINE_PLAYER = 'BOOST_MINE_PLAYER',
   CHANGE_MINE_RESOURCE = 'CHANGE_MINE_RESOURCE',
   ADD_MANUFACTURING_JOB = 'ADD_MANUFACTURING_JOB',
   REMOVE_MANUFACTURING_JOB = 'REMOVE_MANUFACTURING_JOB',

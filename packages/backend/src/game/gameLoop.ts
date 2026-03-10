@@ -18,11 +18,16 @@ const BASE_PRICES: Record<number, number> = {
 // --- Tick Processing ---
 
 function processMining(players: Player[]): void {
+  const now = Date.now();
+
   for (const player of players) {
-    if (!player.activeInMine || !player.currentMineResource) continue;
+    if (!player.currentMineResource) continue;
+
+    const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
+    const amount = isBoosted ? 1.5 : 1;
 
     player.resources[player.currentMineResource] =
-      (player.resources[player.currentMineResource] ?? 0) + 1;
+      (player.resources[player.currentMineResource] ?? 0) + amount;
   }
 }
 

@@ -3,6 +3,9 @@ import { Player, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
 
+const BOOST_DURATION_MS = 30_000;    // 30 seconds
+const BOOST_COOLDOWN_MS = 120_000;   // 2 minutes
+
 function createDefaultPlayer(name: string): Player {
   return {
     id: uuidv4(),
@@ -12,8 +15,9 @@ function createDefaultPlayer(name: string): Player {
     knownRecipes: [],
     technologies: [],
     cash: 0,
-    activeInMine: false,
     currentMineResource: null,
+    mineBoostUntil: null,
+    mineBoostCooldownUntil: null,
     manufacturingQueue: [],
   };
 }
@@ -34,12 +38,24 @@ export function handleAddPlayer(payload: { playerName: string }): void {
   broadcastGameState();
 }
 
-export function handleUpdatePlayerStatus(payload: { playerId: string; active: boolean }): void {
-  const { playerId, active } = payload;
+export function handleBoostMinePlayer(payload: { playerId: string }): void {
+  const { playerId } = payload;
   const player = gameState.getPlayer(playerId);
   if (!player) return;
 
-  gameState.setPlayer(playerId, { ...player, activeInMine: active });
+  const now = Date.now();
+
+  // Can't boost during cooldown
+  if (player.mineBoostCooldownUntil && now < player.mineBoostCooldownUntil) return;
+
+  // Can't boost if already boosted
+  if (player.mineBoostUntil && now < player.mineBoostUntil) return;
+
+  gameState.setPlayer(playerId, {
+    ...player,
+    mineBoostUntil: now + BOOST_DURATION_MS,
+    mineBoostCooldownUntil: now + BOOST_DURATION_MS + BOOST_COOLDOWN_MS,
+  });
   broadcastGameState();
 }
 

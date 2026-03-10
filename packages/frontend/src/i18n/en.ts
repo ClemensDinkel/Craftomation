@@ -65,8 +65,8 @@ export const en: Record<string, string> = {
   'mine.newPlayer': 'New Player',
   'mine.playerNamePlaceholder': 'Enter player name',
   'mine.noPlayers': 'No players yet',
-  'mine.active': 'Active',
-  'mine.inactive': 'Inactive',
+  'mine.boost': 'Boost',
+  'mine.boosted': 'Boost',
   'mine.selectResource': 'Select resource',
 
   // Common

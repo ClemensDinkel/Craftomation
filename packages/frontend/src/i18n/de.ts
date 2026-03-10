@@ -65,8 +65,8 @@ export const de: Record<string, string> = {
   'mine.newPlayer': 'Neuer Spieler',
   'mine.playerNamePlaceholder': 'Spielername eingeben',
   'mine.noPlayers': 'Noch keine Spieler vorhanden',
-  'mine.active': 'Aktiv',
-  'mine.inactive': 'Inaktiv',
+  'mine.boost': 'Boost',
+  'mine.boosted': 'Boost',
   'mine.selectResource': 'Ressource wählen',
 
   // Common

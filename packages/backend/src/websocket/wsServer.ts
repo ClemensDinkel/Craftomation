@@ -3,7 +3,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { WSMessage, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { v4 as uuidv4 } from 'uuid';
-import { handleAddPlayer, handleUpdatePlayerStatus, handleChangeMineResource } from '../handlers/mineHandler';
+import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
 import url from 'url';
 
 let wss: WebSocketServer;
@@ -56,8 +56,8 @@ function handleMessage(clientId: string, message: WSMessage): void {
     case WSMessageType.ADD_PLAYER:
       handleAddPlayer(message.payload as { playerName: string });
       break;
-    case WSMessageType.UPDATE_PLAYER_STATUS:
-      handleUpdatePlayerStatus(message.payload as { playerId: string; active: boolean });
+    case WSMessageType.BOOST_MINE_PLAYER:
+      handleBoostMinePlayer(message.payload as { playerId: string });
       break;
     case WSMessageType.CHANGE_MINE_RESOURCE:
       handleChangeMineResource(message.payload as { playerId: string; resourceId: string });
