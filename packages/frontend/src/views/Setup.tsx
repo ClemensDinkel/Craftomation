@@ -29,6 +29,7 @@ export function Setup() {
   const [playerDialogOpen, setPlayerDialogOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [clientModules, setClientModules] = useState<ModuleType[]>([]);
+  const [clientDevices, setClientDevices] = useState<{ clientId: string; moduleType: ModuleType }[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +57,7 @@ export function Setup() {
       if (res.ok) {
         const data = await res.json();
         setClientModules(data.modules);
+        setClientDevices(data.clients ?? []);
       }
     } catch { /* ignore */ }
   }, [state.sessionId]);
@@ -210,6 +212,16 @@ export function Setup() {
                 className="text-sm"
               />
             </div>
+            {/* Client devices */}
+            {clientDevices.map(cd => (
+              <div key={cd.clientId} className="flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2">
+                <span className="text-white font-medium flex-1 truncate">{cd.clientId}</span>
+                <span className="text-sm text-gray-400">{t(`module.${cd.moduleType}`)}</span>
+              </div>
+            ))}
+            {clientDevices.length === 0 && (
+              <p className="text-gray-500 text-xs mt-1">{t('setup.noClients')}</p>
+            )}
           </div>
         </Card>
 

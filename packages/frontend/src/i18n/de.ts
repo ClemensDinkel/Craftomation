@@ -34,6 +34,7 @@ export const de: Record<string, string> = {
   'setup.optionalModules': 'Optionale Module',
   'setup.players': 'Spieler',
   'setup.noPlayers': 'Noch keine Spieler hinzugefügt',
+  'setup.noClients': 'Noch keine weiteren Geräte verbunden',
   'setup.host': 'Host (Du)',
   'setup.missingModules': 'Folgende Module sind noch keinem Gerät zugewiesen:',
   'setup.startGame': 'Spiel starten',

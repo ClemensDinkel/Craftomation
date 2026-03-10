@@ -146,7 +146,10 @@ router.get<{ id: string }>('/:id/modules', (req, res) => {
     return;
   }
 
-  res.json({ modules: gameState.getAssignedModules() });
+  res.json({
+    modules: gameState.getAssignedModules(),
+    clients: gameState.getAssignedModulesWithClients(),
+  });
 });
 
 // GET /api/session/:id/status

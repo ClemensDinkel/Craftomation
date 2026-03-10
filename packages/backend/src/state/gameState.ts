@@ -167,6 +167,13 @@ class GameStateManager {
     return Array.from(this.clientModules.values());
   }
 
+  getAssignedModulesWithClients(): { clientId: string; moduleType: ModuleType }[] {
+    return Array.from(this.clientModules.entries()).map(([clientId, moduleType]) => ({
+      clientId,
+      moduleType,
+    }));
+  }
+
   // Serialization
   toJSON(): GameState {
     return {

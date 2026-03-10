@@ -1,10 +1,32 @@
+import { useEffect, useCallback } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Card, Spinner } from '@/components/ui';
 
+const API_BASE = `http://${window.location.hostname}:3001`;
+
 export function WaitingScreen() {
   const { t } = useLocale();
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
+
+  const pollStatus = useCallback(async () => {
+    if (!state.sessionId) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/session/${state.sessionId}/status`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.started) {
+          dispatch({ type: 'NAVIGATE', view: 'game' });
+        }
+      }
+    } catch { /* ignore */ }
+  }, [state.sessionId, dispatch]);
+
+  useEffect(() => {
+    pollStatus();
+    const timer = setInterval(pollStatus, 3000);
+    return () => clearInterval(timer);
+  }, [pollStatus]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
