@@ -7,20 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-    },
-  },
-  optimizeDeps: {
-    include: ['@craftomation/shared'],
-  },
-  build: {
-    commonjsOptions: {
-      include: [/shared/, /node_modules/],
+      '@craftomation/shared': path.resolve(__dirname, '../shared/src/index.ts'),
     },
   },
   server: {
     port: 5173,
-    watch: {
-      ignored: ['!**/packages/shared/dist/**'],
-    },
   },
 });

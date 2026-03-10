@@ -6,21 +6,43 @@ type ConnectionStatus = 'disconnected' | 'connected' | 'reconnecting';
 
 const MAX_RETRIES = 3;
 
+// Module-level singleton to survive StrictMode double-mounts
+let activeSocket: WebSocket | null = null;
+let activeUrl: string | null = null;
+let refCount = 0;
+
 export function useWebSocket(url: string | null) {
   const { dispatch } = useGame();
-  const wsRef = useRef<WebSocket | null>(null);
-  const retriesRef = useRef(0);
-  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const dispatchRef = useRef(dispatch);
+  dispatchRef.current = dispatch;
 
-  const connect = useCallback(() => {
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const statusRef = useRef(status);
+  statusRef.current = status;
+
+  const retriesRef = useRef(0);
+
+  const connectRef = useRef<(() => void) | null>(null);
+
+  connectRef.current = () => {
     if (!url) return;
+
+    // Reuse existing socket if URL matches and it's open/connecting
+    if (activeSocket && activeUrl === url &&
+        (activeSocket.readyState === WebSocket.OPEN || activeSocket.readyState === WebSocket.CONNECTING)) {
+      if (activeSocket.readyState === WebSocket.OPEN) {
+        setStatus('connected');
+      }
+      return;
+    }
 
     retriesRef.current = 0;
     const ws = new WebSocket(url);
-    wsRef.current = ws;
+    activeSocket = ws;
+    activeUrl = url;
 
     ws.onopen = () => {
-      if (wsRef.current !== ws) return;
+      if (activeSocket !== ws) return;
       setStatus('connected');
       retriesRef.current = 0;
     };
@@ -28,49 +50,52 @@ export function useWebSocket(url: string | null) {
     ws.onmessage = (event) => {
       try {
         const message: WSMessage = JSON.parse(event.data);
-        handleMessage(message, dispatch);
+        handleMessage(message, dispatchRef.current);
       } catch {
         // ignore malformed messages
       }
     };
 
     ws.onclose = () => {
-      if (wsRef.current !== ws) return;
+      if (activeSocket !== ws) return;
+      activeSocket = null;
+      activeUrl = null;
       setStatus('disconnected');
-      wsRef.current = null;
 
-      if (retriesRef.current < MAX_RETRIES) {
+      if (refCount > 0 && retriesRef.current < MAX_RETRIES) {
         retriesRef.current++;
         setStatus('reconnecting');
-        setTimeout(connect, 2000 * retriesRef.current);
+        setTimeout(() => connectRef.current?.(), 2000 * retriesRef.current);
       }
     };
 
     ws.onerror = () => {
       ws.close();
     };
-  }, [url, dispatch]);
+  };
 
-  const disconnect = useCallback(() => {
-    const ws = wsRef.current;
-    wsRef.current = null;
-    retriesRef.current = MAX_RETRIES; // prevent reconnect from onclose
-    ws?.close();
-    setStatus('disconnected');
-  }, []);
+  useEffect(() => {
+    refCount++;
+    connectRef.current?.();
+
+    return () => {
+      refCount--;
+      if (refCount <= 0) {
+        refCount = 0;
+        activeSocket?.close();
+        activeSocket = null;
+        activeUrl = null;
+      }
+    };
+  }, [url]);
 
   const send = useCallback((message: WSMessage) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
+    if (activeSocket?.readyState === WebSocket.OPEN) {
+      activeSocket.send(JSON.stringify(message));
     }
   }, []);
 
-  useEffect(() => {
-    connect();
-    return disconnect;
-  }, [connect, disconnect]);
-
-  return { status, send, disconnect };
+  return { status, send };
 }
 
 function handleMessage(message: WSMessage, dispatch: React.Dispatch<ReturnType<typeof useGame>['dispatch'] extends React.Dispatch<infer A> ? A : never>) {
