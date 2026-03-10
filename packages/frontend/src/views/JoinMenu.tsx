@@ -32,7 +32,7 @@ export function JoinMenu() {
       const res = await fetch(`${API_BASE}/api/session/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId.toUpperCase() }),
+        body: JSON.stringify({ sessionId: sessionId.toUpperCase(), moduleType, alias }),
       });
 
       if (!res.ok) {

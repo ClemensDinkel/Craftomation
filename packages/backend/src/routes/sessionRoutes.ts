@@ -19,11 +19,16 @@ router.post('/create', (_req: Request, res: Response) => {
 
 // POST /api/session/join
 router.post('/join', (req: Request, res: Response) => {
-  const { sessionId } = req.body;
+  const { sessionId, moduleType, alias } = req.body;
 
   if (!sessionId || !sessionExists(sessionId)) {
     res.status(404).json({ error: 'Session not found' });
     return;
+  }
+
+  if (moduleType) {
+    const deviceId = alias || `device_${Date.now()}`;
+    gameState.setClientModule(deviceId, moduleType);
   }
 
   const config = gameState.getConfig();
@@ -130,6 +135,18 @@ router.post('/start', (req: Request, res: Response) => {
 
   console.log(`[Session] Game started for session: ${sessionId}`);
   res.json({ success: true, state: gameState.toJSON() });
+});
+
+// GET /api/session/:id/modules
+router.get<{ id: string }>('/:id/modules', (req, res) => {
+  const { id } = req.params;
+
+  if (!sessionExists(id)) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  res.json({ modules: gameState.getAssignedModules() });
 });
 
 // GET /api/session/:id/status

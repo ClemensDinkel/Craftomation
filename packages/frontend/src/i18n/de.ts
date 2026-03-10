@@ -35,6 +35,7 @@ export const de: Record<string, string> = {
   'setup.players': 'Spieler',
   'setup.noPlayers': 'Noch keine Spieler hinzugefügt',
   'setup.host': 'Host (Du)',
+  'setup.missingModules': 'Folgende Module sind noch keinem Gerät zugewiesen:',
   'setup.startGame': 'Spiel starten',
 
   // Waiting Screen

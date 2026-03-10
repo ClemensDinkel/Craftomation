@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Button, Card, Dialog, Input, Select, Slider } from '@/components/ui';
@@ -28,8 +28,44 @@ export function Setup() {
   const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
   const [playerDialogOpen, setPlayerDialogOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [clientModules, setClientModules] = useState<ModuleType[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
+
+  const requiredModules = useMemo(() => [
+    ...REQUIRED_MODULES,
+    ...Array.from(activeOptional),
+  ], [activeOptional]);
+
+  const coveredModules = useMemo(() => {
+    const all = [hostModule, ...clientModules];
+    return new Set(all);
+  }, [hostModule, clientModules]);
+
+  const missingModules = useMemo(
+    () => requiredModules.filter(m => !coveredModules.has(m)),
+    [requiredModules, coveredModules],
+  );
+
+  const fetchModules = useCallback(async () => {
+    if (!state.sessionId) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/session/${state.sessionId}/modules`);
+      if (res.ok) {
+        const data = await res.json();
+        setClientModules(data.modules);
+      }
+    } catch { /* ignore */ }
+  }, [state.sessionId]);
+
+  // Poll for connected client modules every 5 seconds
+  useEffect(() => {
+    fetchModules();
+    const timer = setInterval(fetchModules, 5000);
+    return () => clearInterval(timer);
+  }, [fetchModules]);
 
   function copySessionId() {
     if (state.sessionId) {
@@ -277,7 +313,19 @@ export function Setup() {
       </div>
 
       {/* Sticky Start Button */}
-      <div className="sticky bottom-0 bg-gray-900 border-t border-gray-800 p-4">
+      <div className="sticky bottom-0 bg-gray-900 border-t border-gray-800 p-4 space-y-2">
+        {missingModules.length > 0 && (
+          <div className="p-3 bg-amber-900/40 border border-amber-700/50 rounded-lg text-sm">
+            <p className="text-amber-400 font-medium mb-1">{t('setup.missingModules')}</p>
+            <div className="flex flex-wrap gap-1">
+              {missingModules.map(m => (
+                <span key={m} className="px-2 py-0.5 bg-amber-800/50 text-amber-300 rounded text-xs">
+                  {t(`module.${m}`)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <Button size="full" onClick={handleStart} disabled={starting}>
           {starting ? t('common.loading') : t('setup.startGame')}
         </Button>

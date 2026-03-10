@@ -35,6 +35,7 @@ export const en: Record<string, string> = {
   'setup.players': 'Players',
   'setup.noPlayers': 'No players added yet',
   'setup.host': 'Host (You)',
+  'setup.missingModules': 'The following modules are not assigned to any device:',
   'setup.startGame': 'Start Game',
 
   // Waiting Screen

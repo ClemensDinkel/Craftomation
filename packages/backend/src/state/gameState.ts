@@ -39,6 +39,7 @@ class GameStateManager {
   private gameTick: number = 0;
   private gameStarted: boolean = false;
   private connectedClients: Map<string, WebSocket> = new Map();
+  private clientModules: Map<string, ModuleType> = new Map();
 
   hasSession(): boolean {
     return this.config !== null;
@@ -76,6 +77,7 @@ class GameStateManager {
     this.gameTick = 0;
     this.gameStarted = false;
     this.connectedClients.clear();
+    this.clientModules.clear();
   }
 
   // Players
@@ -145,6 +147,7 @@ class GameStateManager {
 
   removeClient(id: string): void {
     this.connectedClients.delete(id);
+    this.clientModules.delete(id);
   }
 
   getClient(id: string): WebSocket | undefined {
@@ -153,6 +156,15 @@ class GameStateManager {
 
   getAllClients(): Map<string, WebSocket> {
     return this.connectedClients;
+  }
+
+  // Client module assignments
+  setClientModule(clientId: string, moduleType: ModuleType): void {
+    this.clientModules.set(clientId, moduleType);
+  }
+
+  getAssignedModules(): ModuleType[] {
+    return Array.from(this.clientModules.values());
   }
 
   // Serialization
