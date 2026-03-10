@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, ManufacturingJob } from '@craftomation/shared';
@@ -8,13 +8,14 @@ interface Props {
   player: Player;
   resources: Resource[];
   recipes: Recipe[];
+  gameSpeed: number;
   send: (msg: WSMessage) => void;
   onBack: () => void;
 }
 
 const isDev = import.meta.env.DEV;
 
-export function PlayerManufacturingView({ player, resources, recipes, send, onBack }: Props) {
+export function PlayerManufacturingView({ player, resources, recipes, gameSpeed, send, onBack }: Props) {
   const { t } = useLocale();
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
@@ -31,8 +32,10 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
 
   const unknownRecipes = useMemo(() => {
     const known = new Set(player.knownRecipes);
-    return recipes.filter(r => !known.has(r.id));
-  }, [player.knownRecipes, recipes]);
+    return recipes
+      .filter(r => !known.has(r.id))
+      .sort((a, b) => a.tier - b.tier || t(`item.${a.id}`).localeCompare(t(`item.${b.id}`)));
+  }, [player.knownRecipes, recipes, t]);
 
   const resourceMap = useMemo(() => {
     const map: Record<string, Resource> = {};
@@ -122,6 +125,7 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
                 key={job.id}
                 job={job}
                 isFirst={index === 0}
+                gameSpeed={gameSpeed}
                 recipeName={t(`item.${job.recipeId}`)}
                 onRemove={() => handleRemoveJob(index)}
               />
@@ -156,23 +160,51 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
 
 // --- Sub-components ---
 
-function JobRow({ job, isFirst, recipeName, onRemove }: {
+function JobRow({ job, isFirst, gameSpeed, recipeName, onRemove }: {
   job: ManufacturingJob;
   isFirst: boolean;
+  gameSpeed: number;
   recipeName: string;
   onRemove: () => void;
 }) {
-  const [, setTick] = useState(0);
+  const snapshotRef = useRef({ time: Date.now(), remaining: job.remainingMs });
+  const maxProgressRef = useRef(0);
+  const [now, setNow] = useState(Date.now());
 
+  // Reset baseline when server updates remainingMs OR when resourcesConsumed flips
+  // The latter is critical: remainingMs stays unchanged when the job starts producing,
+  // so without this the snapshot time would be stale from initial mount
+  useEffect(() => {
+    snapshotRef.current = { time: Date.now(), remaining: job.remainingMs };
+  }, [job.remainingMs, job.resourcesConsumed]);
+
+  // Reset max progress when a different job enters this slot
+  useEffect(() => {
+    maxProgressRef.current = 0;
+  }, [job.id]);
+
+  // Smooth tick every 200ms for visual interpolation
   useEffect(() => {
     if (!isFirst || !job.resourcesConsumed) return;
-    const timer = setInterval(() => setTick(t => t + 1), 500);
+    const timer = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(timer);
   }, [isFirst, job.resourcesConsumed]);
 
-  const progress = isFirst && job.resourcesConsumed
-    ? Math.min(1, Math.max(0, 1 - job.remainingMs / job.duration))
+  const elapsed = now - snapshotRef.current.time;
+  const interpolatedRemaining = isFirst && job.resourcesConsumed
+    ? Math.max(0, snapshotRef.current.remaining - elapsed * gameSpeed)
+    : job.remainingMs;
+
+  let progress = isFirst && job.resourcesConsumed
+    ? Math.min(1, Math.max(0, 1 - interpolatedRemaining / job.duration))
     : 0;
+
+  // Never jump backward — small drift from network latency is hidden
+  if (progress > maxProgressRef.current) {
+    maxProgressRef.current = progress;
+  } else {
+    progress = maxProgressRef.current;
+  }
 
   const waiting = isFirst && !job.resourcesConsumed;
 

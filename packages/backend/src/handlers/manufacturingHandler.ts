@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ManufacturingJob, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
+import { tryStartJob } from '../game/gameLoop';
 
 // Crafting durations in ms per tier (consumable)
 const CRAFTING_DURATION_MS: Record<number, number> = {
@@ -50,7 +51,14 @@ export function handleAddManufacturingJob(payload: {
     resourcesConsumed: false,
   };
 
+  const wasEmpty = player.manufacturingQueue.length === 0;
   player.manufacturingQueue.push(job);
+
+  // If this is the first job in queue, start it immediately
+  if (wasEmpty) {
+    tryStartJob(player, speed);
+  }
+
   gameState.setPlayer(playerId, player);
   broadcastGameState();
 }
