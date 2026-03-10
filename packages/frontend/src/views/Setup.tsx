@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
-import { Button, Card, Input, Select, Slider } from '@/components/ui';
+import { Button, Card, Dialog, Input, Select, Slider } from '@/components/ui';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import type { ModuleType } from '@craftomation/shared';
 
@@ -20,12 +20,14 @@ export function Setup() {
   const { t } = useLocale();
   const { state, dispatch } = useGame();
   const [copied, setCopied] = useState(false);
-  const [playerCount, setPlayerCount] = useState(4);
   const [gameSpeed, setGameSpeed] = useState(1.0);
   const [consumptionRate, setConsumptionRate] = useState(1.0);
   const [resourceTypes, setResourceTypes] = useState(6);
   const [activeOptional, setActiveOptional] = useState<Set<ModuleType>>(new Set());
   const [hostModule, setHostModule] = useState<ModuleType>('mine');
+  const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
+  const [playerDialogOpen, setPlayerDialogOpen] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,37 @@ export function Setup() {
     });
   }
 
+  async function addPlayer() {
+    if (!newPlayerName.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/session/players`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: state.sessionId, playerName: newPlayerName.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPlayers(data.players);
+      }
+    } catch { /* ignore */ }
+    setNewPlayerName('');
+    setPlayerDialogOpen(false);
+  }
+
+  async function removePlayer(playerId: string) {
+    try {
+      const res = await fetch(`${API_BASE}/api/session/players`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: state.sessionId, playerId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPlayers(data.players);
+      }
+    } catch { /* ignore */ }
+  }
+
   async function handleStart() {
     setStarting(true);
     setError(null);
@@ -59,7 +92,6 @@ export function Setup() {
         body: JSON.stringify({
           sessionId: state.sessionId,
           config: {
-            playerCount,
             gameSpeed,
             consumptionRate,
             resourceTypeCount: resourceTypes,
@@ -145,18 +177,52 @@ export function Setup() {
           </div>
         </Card>
 
-        {/* Player Count */}
+        {/* Players */}
         <Card>
-          <Input
-            id="playerCount"
-            label={t('setup.playerCount')}
-            type="number"
-            min={2}
-            max={20}
-            value={playerCount}
-            onChange={e => setPlayerCount(Math.max(2, Number(e.target.value)))}
-          />
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-gray-400">{t('setup.players')}</h2>
+            <Button size="sm" onClick={() => setPlayerDialogOpen(true)}>
+              {t('mine.addPlayer')}
+            </Button>
+          </div>
+          {players.length === 0 ? (
+            <p className="text-gray-500 text-sm">{t('setup.noPlayers')}</p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {players.map(p => (
+                <div key={p.id} className="flex items-center justify-between rounded-lg bg-gray-700/50 px-3 py-1.5">
+                  <span className="text-sm text-white">{p.name}</span>
+                  <button
+                    onClick={() => removePlayer(p.id)}
+                    className="text-gray-500 hover:text-red-400 text-sm transition-colors"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
+
+        <Dialog open={playerDialogOpen} onClose={() => setPlayerDialogOpen(false)} title={t('mine.newPlayer')}>
+          <div className="flex flex-col gap-4">
+            <Input
+              placeholder={t('mine.playerNamePlaceholder')}
+              value={newPlayerName}
+              onChange={e => setNewPlayerName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addPlayer(); }}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setPlayerDialogOpen(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button size="sm" onClick={addPlayer} disabled={!newPlayerName.trim()}>
+                {t('common.confirm')}
+              </Button>
+            </div>
+          </div>
+        </Dialog>
 
         {/* Sliders */}
         <Card className="space-y-4">

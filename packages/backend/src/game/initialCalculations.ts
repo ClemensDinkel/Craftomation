@@ -141,6 +141,20 @@ function initializeMarket(config: SessionConfig, resources: Resource[], recipes:
   return market;
 }
 
+// Step 4: Assign resources to players (round-robin for even distribution)
+function assignPlayerResources(resources: Resource[]): void {
+  const players = shuffle(gameState.getAllPlayers());
+  if (players.length === 0 || resources.length === 0) return;
+
+  for (let i = 0; i < players.length; i++) {
+    const resource = resources[i % resources.length];
+    gameState.setPlayer(players[i].id, {
+      ...players[i],
+      currentMineResource: resource.id,
+    });
+  }
+}
+
 export function runInitialCalculations(config: SessionConfig): void {
   const resources = selectResources(config);
   gameState.setResources(resources);
@@ -150,6 +164,8 @@ export function runInitialCalculations(config: SessionConfig): void {
 
   const market = initializeMarket(config, resources, recipes);
   gameState.setMarket(market);
+
+  assignPlayerResources(resources);
 
   console.log(`[Init] Resources: ${resources.length}, Recipes: ${recipes.length}`);
   console.log(`[Init] Market: ${Object.keys(market.resources).length} resources, ${Object.keys(market.consumables).length} consumables`);

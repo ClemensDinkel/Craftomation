@@ -7,6 +7,7 @@ import { startAutoSave } from '../state/autoSave';
 import { runInitialCalculations } from '../game/initialCalculations';
 import { broadcast } from '../websocket/wsServer';
 import { startGameLoop } from '../game/gameLoop';
+import { handleAddPlayer } from '../handlers/mineHandler';
 
 const router = Router();
 
@@ -42,6 +43,53 @@ router.post('/load', (_req: Request, res: Response) => {
   res.json({ sessionId: snapshot.session.sessionId });
 });
 
+// POST /api/session/players
+router.post('/players', (req: Request, res: Response) => {
+  const { sessionId, playerName } = req.body;
+
+  if (!sessionId || !sessionExists(sessionId)) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  if (!playerName?.trim()) {
+    res.status(400).json({ error: 'Player name required' });
+    return;
+  }
+
+  handleAddPlayer({ playerName: playerName.trim() });
+
+  const players = gameState.getAllPlayers().map(p => ({ id: p.id, name: p.name }));
+  res.json({ players });
+});
+
+// DELETE /api/session/players
+router.delete('/players', (req: Request, res: Response) => {
+  const { sessionId, playerId } = req.body;
+
+  if (!sessionId || !sessionExists(sessionId)) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  gameState.removePlayer(playerId);
+  const players = gameState.getAllPlayers().map(p => ({ id: p.id, name: p.name }));
+  res.json({ players });
+});
+
+// GET /api/session/:id/players
+router.get<{ id: string }>('/:id/players', (req, res) => {
+  const { id } = req.params;
+
+  if (!sessionExists(id)) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  const players = gameState.getAllPlayers().map(p => ({ id: p.id, name: p.name }));
+  res.json({ players });
+});
+
 // POST /api/session/start
 router.post('/start', (req: Request, res: Response) => {
   const { sessionId, config } = req.body;
@@ -60,6 +108,10 @@ router.post('/start', (req: Request, res: Response) => {
   if (config) {
     gameState.updateConfig(config);
   }
+
+  // Derive playerCount from registered players
+  const playerCount = Math.max(1, gameState.getAllPlayers().length);
+  gameState.updateConfig({ playerCount });
 
   // Run initial calculations
   const currentConfig = gameState.getConfig()!;

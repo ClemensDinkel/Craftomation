@@ -32,6 +32,8 @@ export const en: Record<string, string> = {
   'setup.consumptionRate': 'Consumption Rate',
   'setup.resourceTypes': 'Resource Types',
   'setup.optionalModules': 'Optional Modules',
+  'setup.players': 'Players',
+  'setup.noPlayers': 'No players added yet',
   'setup.host': 'Host (You)',
   'setup.startGame': 'Start Game',
 
