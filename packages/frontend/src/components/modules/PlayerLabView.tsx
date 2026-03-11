@@ -3,7 +3,7 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, LabColor } from '@craftomation/shared';
-import { Button, Dialog } from '@/components/ui';
+import { Button } from '@/components/ui';
 
 interface Props {
   player: Player;
@@ -13,11 +13,10 @@ interface Props {
   onBack: () => void;
 }
 
-const TECH_LEVEL = 1; // Hardcoded for now — expandable later
+const TECH_LEVEL = 1; // Hardcoded for now
 const MAX_SLOTS = 6;
 
 function getAvailableSlots(): number {
-  // Slots 1-3 always, 4 at tech 2, 5 at tech 3, 6 at tech 4
   return Math.min(MAX_SLOTS, 3 + Math.max(0, TECH_LEVEL - 1));
 }
 
@@ -25,7 +24,6 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
   const { t } = useLocale();
   const { state, dispatch } = useGame();
   const [slots, setSlots] = useState<(string | null)[]>(Array(MAX_SLOTS).fill(null));
-  const [inventoryOpen, setInventoryOpen] = useState(false);
   const [resultColors, setResultColors] = useState<LabColor[] | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
@@ -38,7 +36,6 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     return map;
   }, [resources]);
 
-  // Count how many of each resource is used in current slots
   const usedResources = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const resId of slots) {
@@ -47,10 +44,28 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     return counts;
   }, [slots]);
 
+  // Recipes per tier stats
+  const tierStats = useMemo(() => {
+    const stats: Record<number, { total: number; known: number }> = {};
+    const knownSet = new Set(player.knownRecipes);
+    for (const r of recipes) {
+      if (!stats[r.tier]) stats[r.tier] = { total: 0, known: 0 };
+      stats[r.tier].total++;
+      if (knownSet.has(r.id)) stats[r.tier].known++;
+    }
+    return stats;
+  }, [recipes, player.knownRecipes]);
+
+  // Warning for current slot count tier
+  const filledCount = slots.slice(0, availableSlots).filter(Boolean).length;
+  const currentTier = filledCount >= 3 ? filledCount - 2 : 0;
+  const tierAllKnown = currentTier > 0 && tierStats[currentTier]
+    ? tierStats[currentTier].known >= tierStats[currentTier].total
+    : false;
+
   // Handle lab result from server
   useEffect(() => {
     if (!state.labResult) return;
-
     const result = state.labResult;
     setWaiting(false);
 
@@ -74,11 +89,9 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     dispatch({ type: 'CLEAR_LAB_RESULT' });
   }, [state.labResult, dispatch, t]);
 
-  const filledSlots = slots.slice(0, availableSlots).filter(Boolean);
-  const canExperiment = filledSlots.length >= 3 && !waiting;
+  const canExperiment = filledCount >= 3 && !waiting;
 
   const handleSlotClick = useCallback((resId: string) => {
-    // If showing results, clear first
     if (resultColors) {
       setResultColors(null);
       setResultMessage(null);
@@ -88,7 +101,6 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
 
     setSlots(prev => {
       const next = [...prev];
-      // Find first empty available slot
       for (let i = 0; i < availableSlots; i++) {
         if (!next[i]) {
           next[i] = resId;
@@ -140,20 +152,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
           {t('common.back')}
         </Button>
         <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
-        <div className="ml-auto">
-          <Button variant="secondary" size="sm" onClick={() => setInventoryOpen(true)}>
-            {t('manufacturing.inventory')}
-          </Button>
-        </div>
       </div>
-
-      {/* Inventory Dialog */}
-      <InventoryDialog
-        open={inventoryOpen}
-        onClose={() => setInventoryOpen(false)}
-        player={player}
-        resourceMap={resourceMap}
-      />
 
       {/* Slot Area */}
       <section>
@@ -208,6 +207,13 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
             );
           })}
         </div>
+
+        {/* Tier warning */}
+        {tierAllKnown && !resultColors && (
+          <div className="text-center text-sm mb-3 px-3 py-2 rounded-lg bg-amber-900/40 text-amber-400">
+            {t('lab.allTierKnown')} (T{currentTier})
+          </div>
+        )}
 
         {/* Result message */}
         {resultMessage && (
@@ -278,7 +284,60 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
         </div>
       </section>
 
-      {/* Known Recipes */}
+      {/* Experiment History */}
+      {player.labHistory.length > 0 && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">
+            {t('lab.history')} ({player.labHistory.length})
+          </h3>
+          <div className="flex flex-col gap-2">
+            {[...player.labHistory].reverse().map((entry, idx) => (
+              <div
+                key={idx}
+                className={`rounded-lg border px-3 py-2 ${
+                  entry.match
+                    ? 'border-green-700/50 bg-green-900/20'
+                    : 'border-gray-700/50 bg-gray-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex gap-1.5">
+                    {entry.sequence.map((resId, i) => {
+                      const res = resourceMap[resId];
+                      if (!res) return null;
+                      const c = entry.colorCoding[i];
+                      const ring = c === 'green'
+                        ? 'ring-2 ring-green-500'
+                        : c === 'yellow'
+                          ? 'ring-2 ring-yellow-500'
+                          : 'ring-2 ring-red-500';
+                      return (
+                        <span
+                          key={i}
+                          className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white ${ring}`}
+                          style={{ backgroundColor: res.color }}
+                        >
+                          {res.initialLetter}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <span className="ml-auto text-xs text-gray-500">
+                    {Math.round(entry.similarity * 100)}%
+                  </span>
+                </div>
+                {entry.match && entry.recipeId && (
+                  <p className="text-green-400 text-xs font-medium">
+                    {t('lab.recipeUnlocked')}: {t(`item.${entry.recipeId}`)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Known Recipes grouped by tier */}
       <section>
         <h3 className="text-sm font-medium text-gray-400 mb-2">
           {t('lab.knownRecipes')} ({player.knownRecipes.length}/{recipes.length})
@@ -286,33 +345,56 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
         {player.knownRecipes.length === 0 ? (
           <p className="text-gray-500 text-sm">{t('lab.noRecipesYet')}</p>
         ) : (
-          <div className="flex flex-col gap-1">
-            {recipes
-              .filter(r => player.knownRecipes.includes(r.id))
-              .sort((a, b) => a.tier - b.tier || t(`item.${a.id}`).localeCompare(t(`item.${b.id}`)))
-              .map(recipe => (
-                <div key={recipe.id} className="flex items-center gap-2 rounded-lg bg-gray-800/60 px-3 py-1.5">
-                  <span className="text-white text-sm flex-1 truncate">{t(`item.${recipe.id}`)}</span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tierColor(recipe.tier)}`}>
-                    T{recipe.tier}
-                  </span>
-                  <div className="flex gap-0.5">
-                    {recipe.sequence.map((resId, i) => {
-                      const r = resourceMap[resId];
-                      if (!r) return null;
-                      return (
-                        <span
-                          key={i}
-                          className="inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-bold text-white"
-                          style={{ backgroundColor: r.color }}
-                        >
-                          {r.initialLetter}
-                        </span>
-                      );
-                    })}
+          <div className="flex flex-col gap-3">
+            {([1, 2, 3, 4] as const).map(tier => {
+              const tierRecipes = recipes
+                .filter(r => r.tier === tier && player.knownRecipes.includes(r.id))
+                .sort((a, b) => t(`item.${a.id}`).localeCompare(t(`item.${b.id}`)));
+              const stats = tierStats[tier];
+              if (!stats || stats.total === 0) return null;
+
+              return (
+                <div key={tier}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tierColorClass(tier)}`}>
+                      Tier {tier}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {stats.known}/{stats.total}
+                    </span>
+                    {stats.known >= stats.total && (
+                      <span className="text-xs text-green-500">✓</span>
+                    )}
                   </div>
+                  {tierRecipes.length === 0 ? (
+                    <p className="text-gray-600 text-xs pl-1">{t('lab.noneDiscovered')}</p>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {tierRecipes.map(recipe => (
+                        <div key={recipe.id} className="flex items-center gap-2 rounded-lg bg-gray-800/60 px-3 py-1.5">
+                          <span className="text-white text-sm flex-1 truncate">{t(`item.${recipe.id}`)}</span>
+                          <div className="flex gap-0.5">
+                            {recipe.sequence.map((resId, i) => {
+                              const r = resourceMap[resId];
+                              if (!r) return null;
+                              return (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-bold text-white"
+                                  style={{ backgroundColor: r.color }}
+                                >
+                                  {r.initialLetter}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -320,7 +402,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
   );
 }
 
-function tierColor(tier: number): string {
+function tierColorClass(tier: number): string {
   const colors: Record<number, string> = {
     1: 'bg-gray-600 text-gray-300',
     2: 'bg-green-800 text-green-300',
@@ -328,64 +410,4 @@ function tierColor(tier: number): string {
     4: 'bg-purple-800 text-purple-300',
   };
   return colors[tier] ?? colors[1];
-}
-
-function InventoryDialog({ open, onClose, player, resourceMap }: {
-  open: boolean;
-  onClose: () => void;
-  player: Player;
-  resourceMap: Record<string, Resource>;
-}) {
-  const { t } = useLocale();
-
-  const resourceEntries = Object.entries(player.resources).filter(([, v]) => v > 0);
-  const consumableEntries = Object.entries(player.consumables).filter(([, v]) => v > 0);
-
-  return (
-    <Dialog open={open} onClose={onClose} title={t('manufacturing.inventory')}>
-      <div className="flex flex-col gap-4 max-h-80 overflow-y-auto">
-        <div>
-          <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.resources')}</h4>
-          {resourceEntries.length === 0 ? (
-            <p className="text-gray-500 text-xs">{t('manufacturing.noItems')}</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {resourceEntries.map(([resId, amount]) => {
-                const res = resourceMap[resId];
-                return (
-                  <div key={resId} className="flex items-center gap-2 text-sm">
-                    {res && (
-                      <span
-                        className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-white"
-                        style={{ backgroundColor: res.color }}
-                      >
-                        {res.initialLetter}
-                      </span>
-                    )}
-                    <span className="text-gray-300 flex-1">{res?.name ?? resId}</span>
-                    <span className="text-white font-mono">{Math.floor(amount)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <div>
-          <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.consumables')}</h4>
-          {consumableEntries.length === 0 ? (
-            <p className="text-gray-500 text-xs">{t('manufacturing.noItems')}</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {consumableEntries.map(([itemId, amount]) => (
-                <div key={itemId} className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-300 flex-1">{t(`item.${itemId}`)}</span>
-                  <span className="text-white font-mono">{amount}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </Dialog>
-  );
 }

@@ -89,6 +89,14 @@ function selectResources(config: SessionConfig): Resource[] {
   }));
 }
 
+// Recipes per tier
+const RECIPES_PER_TIER: Record<number, number> = {
+  1: 4,
+  2: 5,
+  3: 6,
+  4: 7,
+};
+
 // Step 2: Generate recipes (consumables only)
 function generateRecipes(config: SessionConfig, resources: Resource[]): Recipe[] {
   const resourceIds = resources.map(r => r.id);
@@ -98,19 +106,24 @@ function generateRecipes(config: SessionConfig, resources: Resource[]): Recipe[]
   const organicProducts = hasPlantation ? loadOrganicProducts() : [];
   const allProducts = [...metalProducts, ...organicProducts];
 
-  // Anzahl = playerCount * 3 (min 10, max 20)
-  const consumableCount = Math.min(20, Math.max(10, config.playerCount * 3));
-  const selectedProducts = pickRandom(allProducts, consumableCount);
+  const recipes: Recipe[] = [];
 
-  return selectedProducts.map(item => {
-    const tier = Number(item.tier) as 1 | 2 | 3 | 4;
-    return {
-      id: item.id,
-      tier,
-      type: 'consumable' as const,
-      sequence: randomSequence(resourceIds, tier + 2),
-    };
-  });
+  for (const tier of [1, 2, 3, 4] as const) {
+    const count = RECIPES_PER_TIER[tier];
+    const tierProducts = allProducts.filter(p => Number(p.tier) === tier);
+    const selected = pickRandom(tierProducts, count);
+
+    for (const item of selected) {
+      recipes.push({
+        id: item.id,
+        tier,
+        type: 'consumable' as const,
+        sequence: randomSequence(resourceIds, tier + 2),
+      });
+    }
+  }
+
+  return recipes;
 }
 
 // Step 3: Initialize market

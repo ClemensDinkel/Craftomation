@@ -8,7 +8,8 @@
       "Bash(node:*)",
       "Bash(npx tsc:*)",
       "Bash(rm:*)",
-      "Bash(cd D:/Projects/Craftomation && npx -w @craftomation/frontend tsc --noEmit 2>&1)"
+      "Bash(cd D:/Projects/Craftomation && npx -w @craftomation/frontend tsc --noEmit 2>&1)",
+      "Bash(cd D:/Projects/Craftomation && npm run build -w @craftomation/shared 2>&1 | tail -3 && npm run build -w @craftomation/backend 2>&1 | tail -5 && npx -w @craftomation/frontend tsc --noEmit 2>&1)"
     ]
   }
 }

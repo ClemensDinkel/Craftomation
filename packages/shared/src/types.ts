@@ -54,6 +54,7 @@ export interface Player {
   mineBoostUntil: number | null;       // timestamp when boost expires
   mineBoostCooldownUntil: number | null; // timestamp when cooldown expires
   manufacturingQueue: ManufacturingJob[];
+  labHistory: LabExperimentEntry[];
 }
 
 // ==========================================
@@ -77,6 +78,14 @@ export interface ManufacturingJob {
 // ==========================================
 
 export type LabColor = 'green' | 'yellow' | 'red';
+
+export interface LabExperimentEntry {
+  sequence: string[];       // resourceIds used
+  colorCoding: LabColor[];
+  similarity: number;
+  match: boolean;
+  recipeId?: string;        // if matched
+}
 
 export interface LabResult {
   success: boolean;

@@ -13,7 +13,6 @@ function computeWordle(guess: string[], target: string[]): { colorCoding: LabCol
   const len = guess.length;
   const colorCoding: LabColor[] = new Array(len).fill('red');
 
-  // Track which target positions are already matched
   const targetUsed = new Array(len).fill(false);
   const guessUsed = new Array(len).fill(false);
 
@@ -81,13 +80,19 @@ export function handleLabExperiment(
   );
 
   if (candidates.length === 0) {
-    // No unknown recipes of this tier — resources consumed, no match possible
+    const coding: LabColor[] = sequence.map(() => 'red');
+    player.labHistory.push({
+      sequence: [...sequence],
+      colorCoding: coding,
+      similarity: 0,
+      match: false,
+    });
     gameState.setPlayer(playerId, player);
     broadcastGameState();
     return {
       success: true,
       match: false,
-      colorCoding: sequence.map(() => 'red' as LabColor),
+      colorCoding: coding,
       similarity: 0,
     };
   }
@@ -114,6 +119,15 @@ export function handleLabExperiment(
     player.knownRecipes.push(bestRecipeId);
     unlockedRecipe = gameState.getRecipes().find(r => r.id === bestRecipeId);
   }
+
+  // 6. Save to history
+  player.labHistory.push({
+    sequence: [...sequence],
+    colorCoding: bestCoding,
+    similarity: bestSimilarity,
+    match: isMatch,
+    recipeId: isMatch ? bestRecipeId ?? undefined : undefined,
+  });
 
   gameState.setPlayer(playerId, player);
   broadcastGameState();

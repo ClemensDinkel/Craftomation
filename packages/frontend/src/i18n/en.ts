@@ -86,6 +86,9 @@ export const en: Record<string, string> = {
   'lab.insufficientResources': 'Not enough resources!',
   'lab.recipeUnlocked': 'Recipe unlocked',
   'lab.similarity': 'Similarity',
+  'lab.history': 'Past Experiments',
+  'lab.allTierKnown': 'All recipes for this tier already discovered!',
+  'lab.noneDiscovered': 'None discovered yet',
 
   // Manufacturing Module
   'manufacturing.title': 'Manufacturing',

@@ -19,6 +19,7 @@ function createDefaultPlayer(name: string): Player {
     mineBoostUntil: null,
     mineBoostCooldownUntil: null,
     manufacturingQueue: [],
+    labHistory: [],
   };
 }
 

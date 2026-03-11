@@ -86,6 +86,9 @@ export const de: Record<string, string> = {
   'lab.insufficientResources': 'Nicht genug Rohstoffe!',
   'lab.recipeUnlocked': 'Rezept freigeschaltet',
   'lab.similarity': 'Ähnlichkeit',
+  'lab.history': 'Bisherige Experimente',
+  'lab.allTierKnown': 'Alle Rezepte dieses Tiers bereits entdeckt!',
+  'lab.noneDiscovered': 'Noch keine entdeckt',
 
   // Manufacturing Module
   'manufacturing.title': 'Fertigungshalle',
