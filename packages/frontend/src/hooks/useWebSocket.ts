@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { WSMessageType, type WSMessage, type GameState } from '@craftomation/shared';
+import { WSMessageType, type WSMessage, type GameState, type LabResult } from '@craftomation/shared';
 import { useGame } from '@/context/GameContext';
 
 type ConnectionStatus = 'disconnected' | 'connected' | 'reconnecting';
@@ -110,6 +110,9 @@ function handleMessage(message: WSMessage, dispatch: React.Dispatch<ReturnType<t
     case WSMessageType.PLAYER_UPDATE:
     case WSMessageType.MARKET_UPDATE:
       // Partial updates — for now treat as full state if applicable
+      break;
+    case WSMessageType.LAB_RESULT:
+      dispatch({ type: 'SET_LAB_RESULT', labResult: message.payload as LabResult });
       break;
     case WSMessageType.ERROR:
       console.error('[WS] Server error:', message.payload);

@@ -5,6 +5,7 @@ import { gameState } from '../state/gameState';
 import { v4 as uuidv4 } from 'uuid';
 import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
 import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
+import { handleLabExperiment } from '../handlers/labHandler';
 import url from 'url';
 
 let wss: WebSocketServer;
@@ -72,9 +73,11 @@ function handleMessage(clientId: string, message: WSMessage): void {
     case WSMessageType.DEBUG_UNLOCK_RECIPE:
       handleDebugUnlockRecipe(message.payload as { playerId: string; recipeId: string });
       break;
-    case WSMessageType.LAB_EXPERIMENT:
-      // TODO: Handle lab experiment
+    case WSMessageType.LAB_EXPERIMENT: {
+      const result = handleLabExperiment(clientId, message.payload as { playerId: string; sequence: string[] });
+      sendTo(clientId, { type: WSMessageType.LAB_RESULT, payload: result });
       break;
+    }
     case WSMessageType.MARKET_BUY:
       // TODO: Handle market buy
       break;

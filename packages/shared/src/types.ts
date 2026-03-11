@@ -73,6 +73,21 @@ export interface ManufacturingJob {
 }
 
 // ==========================================
+// Lab
+// ==========================================
+
+export type LabColor = 'green' | 'yellow' | 'red';
+
+export interface LabResult {
+  success: boolean;
+  reason?: 'insufficient_resources';
+  match?: boolean;
+  recipeUnlocked?: Recipe;
+  colorCoding?: LabColor[];
+  similarity?: number;
+}
+
+// ==========================================
 // Recipe / Item
 // ==========================================
 

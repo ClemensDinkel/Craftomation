@@ -73,6 +73,20 @@ export const en: Record<string, string> = {
   'mine.boosted': 'Boost',
   'mine.selectResource': 'Select resource',
 
+  // Lab Module
+  'lab.title': 'Laboratory',
+  'lab.noPlayers': 'No players yet',
+  'lab.experiment': 'Experiment',
+  'lab.experimentBtn': 'Experiment',
+  'lab.clear': 'Clear',
+  'lab.newExperiment': 'New Experiment',
+  'lab.resourcePalette': 'Resources',
+  'lab.knownRecipes': 'Known Recipes',
+  'lab.noRecipesYet': 'No recipes discovered yet',
+  'lab.insufficientResources': 'Not enough resources!',
+  'lab.recipeUnlocked': 'Recipe unlocked',
+  'lab.similarity': 'Similarity',
+
   // Manufacturing Module
   'manufacturing.title': 'Manufacturing',
   'manufacturing.noPlayers': 'No players yet',

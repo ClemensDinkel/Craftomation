@@ -5,6 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { MineModule } from '@/components/modules/MineModule';
 import { ManufacturingModule } from '@/components/modules/ManufacturingModule';
+import { LabModule } from '@/components/modules/LabModule';
 
 export function GameShell() {
   const { t } = useLocale();
@@ -54,6 +55,8 @@ function ModuleRouter({ moduleType, send }: { moduleType: string | null; send: (
       return <MineModule send={send} />;
     case 'manufacturing':
       return <ManufacturingModule send={send} />;
+    case 'lab':
+      return <LabModule send={send} />;
     default:
       return (
         <div className="flex items-center justify-center h-64 bg-gray-800 rounded-xl">

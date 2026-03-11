@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react';
-import type { GameState, ModuleType } from '@craftomation/shared';
+import type { GameState, ModuleType, LabResult } from '@craftomation/shared';
 
 type View = 'startMenu' | 'hostMenu' | 'joinMenu' | 'setup' | 'waiting' | 'game';
 
@@ -10,6 +10,7 @@ interface AppState {
   alias: string;
   gameState: GameState | null;
   isHost: boolean;
+  labResult: LabResult | null;
 }
 
 type Action =
@@ -18,6 +19,8 @@ type Action =
   | { type: 'SET_MODULE'; moduleType: ModuleType }
   | { type: 'SET_ALIAS'; alias: string }
   | { type: 'SET_GAME_STATE'; gameState: GameState }
+  | { type: 'SET_LAB_RESULT'; labResult: LabResult }
+  | { type: 'CLEAR_LAB_RESULT' }
   | { type: 'RESET' };
 
 const initialState: AppState = {
@@ -27,6 +30,7 @@ const initialState: AppState = {
   alias: '',
   gameState: null,
   isHost: false,
+  labResult: null,
 };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -41,6 +45,10 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, alias: action.alias };
     case 'SET_GAME_STATE':
       return { ...state, gameState: action.gameState };
+    case 'SET_LAB_RESULT':
+      return { ...state, labResult: action.labResult };
+    case 'CLEAR_LAB_RESULT':
+      return { ...state, labResult: null };
     case 'RESET':
       return initialState;
     default:
