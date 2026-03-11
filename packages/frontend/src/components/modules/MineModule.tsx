@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
@@ -142,30 +143,102 @@ function PlayerRow({ player, resources, onBoost, onChangeResource }: PlayerRowPr
             : t('mine.boost')}
       </button>
 
-      <div className="shrink-0">
-        <div className="flex items-center gap-1.5">
-          {selectedResource && (
+      <ResourceDropdown
+        resources={resources}
+        selected={selectedResource ?? null}
+        placeholder={t('mine.selectResource')}
+        onChange={resId => onChangeResource(player.id, resId)}
+      />
+    </div>
+  );
+}
+
+function ResourceDropdown({ resources, selected, placeholder, onChange }: {
+  resources: Resource[];
+  selected: Resource | null;
+  placeholder: string;
+  onChange: (resId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  const updatePos = useCallback(() => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setPos({
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    });
+  }, []);
+
+  const handleToggle = () => {
+    if (!open) updatePos();
+    setOpen(v => !v);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target)) return;
+      if (listRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div className="shrink-0">
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm text-white hover:bg-gray-600 transition-colors"
+      >
+        {selected ? (
+          <>
             <span
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white"
-              style={{ backgroundColor: selectedResource.color }}
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white"
+              style={{ backgroundColor: selected.color }}
             >
-              {selectedResource.initialLetter}
+              {selected.initialLetter}
             </span>
-          )}
-          <select
-            value={player.currentMineResource ?? ''}
-            onChange={e => onChangeResource(player.id, e.target.value)}
-            className="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500"
-          >
-            <option value="">{t('mine.selectResource')}</option>
-            {resources.map(r => (
-              <option key={r.id} value={r.id}>
-                {r.initialLetter} — {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+            <span>{selected.name}</span>
+          </>
+        ) : (
+          <span className="text-gray-400">{placeholder}</span>
+        )}
+        <span className="text-gray-400 ml-1 text-xs">▼</span>
+      </button>
+
+      {open && createPortal(
+        <div
+          ref={listRef}
+          className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg py-1 min-w-[10rem]"
+          style={{ top: pos.top, right: pos.right }}
+        >
+          {resources.map(r => (
+            <button
+              key={r.id}
+              onClick={() => { onChange(r.id); setOpen(false); }}
+              className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-gray-700 transition-colors ${
+                selected?.id === r.id ? 'bg-gray-700/50' : ''
+              }`}
+            >
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shrink-0"
+                style={{ backgroundColor: r.color }}
+              >
+                {r.initialLetter}
+              </span>
+              <span className="text-white">{r.name}</span>
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

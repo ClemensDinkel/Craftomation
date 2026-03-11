@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import type { Player, WSMessage } from '@craftomation/shared';
-import { Badge } from '@/components/ui';
 import { PlayerLabView } from './PlayerLabView';
 
 interface LabModuleProps {
@@ -48,7 +47,6 @@ export function LabModule({ send }: LabModuleProps) {
           <PlayerCard
             key={player.id}
             player={player}
-            totalRecipes={state.gameState?.recipes.length ?? 0}
             onClick={() => setSelectedPlayerId(player.id)}
           />
         ))}
@@ -57,18 +55,13 @@ export function LabModule({ send }: LabModuleProps) {
   );
 }
 
-function PlayerCard({ player, totalRecipes, onClick }: { player: Player; totalRecipes: number; onClick: () => void }) {
-  const knownCount = player.knownRecipes.length;
-
+function PlayerCard({ player, onClick }: { player: Player; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className="flex items-center gap-3 rounded-lg border border-gray-700/50 bg-gray-800/60 px-4 py-3 text-left hover:bg-gray-700/60 transition-colors w-full"
     >
       <span className="flex-1 text-white font-medium truncate">{player.name}</span>
-      <Badge color={knownCount > 0 ? 'green' : 'gray'}>
-        {knownCount}/{totalRecipes}
-      </Badge>
     </button>
   );
 }

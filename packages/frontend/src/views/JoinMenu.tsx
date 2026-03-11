@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Button, Input, Select } from '@/components/ui';
@@ -26,6 +26,21 @@ export function JoinMenu() {
   const [moduleType, setModuleType] = useState<ModuleType>('mine');
   const [alias, setAlias] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-select first untaken module when session ID is complete
+  useEffect(() => {
+    if (sessionId.length < 6) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/session/${sessionId}/modules`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const taken = new Set<string>(data.modules ?? []);
+        const firstFree = MODULE_OPTIONS.find(m => !taken.has(m.value));
+        if (firstFree) setModuleType(firstFree.value);
+      } catch { /* ignore */ }
+    })();
+  }, [sessionId]);
 
   async function handleJoin() {
     try {

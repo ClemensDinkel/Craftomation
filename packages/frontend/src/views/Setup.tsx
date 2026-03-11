@@ -62,6 +62,16 @@ export function Setup() {
     } catch { /* ignore */ }
   }, [state.sessionId]);
 
+  // Register host module on backend so joiners can see it's taken
+  useEffect(() => {
+    if (!state.sessionId) return;
+    fetch(`${API_BASE}/api/session/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: state.sessionId, moduleType: hostModule, alias: '__host__' }),
+    }).catch(() => {});
+  }, [state.sessionId, hostModule]);
+
   // Poll for connected client modules every 5 seconds
   useEffect(() => {
     fetchModules();
