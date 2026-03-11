@@ -18,6 +18,8 @@ export function LabModule({ send }: LabModuleProps) {
     return Object.values(state.gameState.players).sort((a, b) => a.name.localeCompare(b.name));
   }, [state.gameState?.players]);
 
+  const resources = state.gameState?.resources ?? [];
+
   const selectedPlayer = useMemo(
     () => players.find(p => p.id === selectedPlayerId) ?? null,
     [players, selectedPlayerId],
@@ -27,7 +29,7 @@ export function LabModule({ send }: LabModuleProps) {
     return (
       <PlayerLabView
         player={selectedPlayer}
-        resources={state.gameState?.resources ?? []}
+        resources={resources}
         recipes={state.gameState?.recipes ?? []}
         send={send}
         onBack={() => setSelectedPlayerId(null)}

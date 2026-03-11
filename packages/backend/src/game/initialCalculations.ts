@@ -10,15 +10,15 @@ import {
 
 const RESOURCE_COLORS = [
   '#E74C3C', // Red
-  '#3498DB', // Blue
+  '#2979FF', // Blue
   '#2ECC71', // Green
-  '#F39C12', // Orange
+  '#FF9800', // Orange
   '#9B59B6', // Purple
-  '#1ABC9C', // Teal
-  '#E67E22', // Dark Orange
+  '#FFD600', // Yellow
   '#E91E63', // Pink
-  '#00BCD4', // Cyan
-  '#8BC34A', // Light Green
+  '#00BFA5', // Teal
+  '#795548', // Brown
+  '#3F51B5', // Indigo
 ];
 
 const BASE_PRICES: Record<number, number> = {
@@ -81,12 +81,14 @@ function selectResources(config: SessionConfig): Resource[] {
   const allElements = [...metalElements, ...organicElements];
   const selected = selectWithUniqueInitials(allElements, config.resourceTypeCount);
 
-  return selected.map((el, i) => ({
+  const resources = selected.map((el, i) => ({
     id: el.id,
     name: el.name,
     color: RESOURCE_COLORS[i % RESOURCE_COLORS.length],
     initialLetter: el.name[0].toUpperCase(),
   }));
+
+  return resources.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // Recipes per tier
@@ -154,16 +156,18 @@ function initializeMarket(config: SessionConfig, resources: Resource[], recipes:
   return market;
 }
 
-// Step 4: Assign resources to players (round-robin for even distribution)
+// Step 4: Assign all resources to players (default: produce everything)
 function assignPlayerResources(resources: Resource[]): void {
-  const players = shuffle(gameState.getAllPlayers());
+  const players = gameState.getAllPlayers();
   if (players.length === 0 || resources.length === 0) return;
 
-  for (let i = 0; i < players.length; i++) {
-    const resource = resources[i % resources.length];
-    gameState.setPlayer(players[i].id, {
-      ...players[i],
-      currentMineResource: resource.id,
+  const allResourceIds = resources.map(r => r.id);
+
+  for (const player of players) {
+    gameState.setPlayer(player.id, {
+      ...player,
+      mineResources: allResourceIds,
+      mineResourceIndex: 0,
     });
   }
 }

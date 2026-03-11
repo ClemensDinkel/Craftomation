@@ -15,7 +15,8 @@ function createDefaultPlayer(name: string): Player {
     knownRecipes: [],
     technologies: [],
     cash: 0,
-    currentMineResource: null,
+    mineResources: [],
+    mineResourceIndex: 0,
     mineBoostUntil: null,
     mineBoostCooldownUntil: null,
     manufacturingQueue: [],
@@ -60,11 +61,15 @@ export function handleBoostMinePlayer(payload: { playerId: string }): void {
   broadcastGameState();
 }
 
-export function handleChangeMineResource(payload: { playerId: string; resourceId: string }): void {
-  const { playerId, resourceId } = payload;
+export function handleChangeMineResource(payload: { playerId: string; resourceIds: string[] }): void {
+  const { playerId, resourceIds } = payload;
   const player = gameState.getPlayer(playerId);
   if (!player) return;
 
-  gameState.setPlayer(playerId, { ...player, currentMineResource: resourceId });
+  gameState.setPlayer(playerId, {
+    ...player,
+    mineResources: resourceIds,
+    mineResourceIndex: 0,
+  });
   broadcastGameState();
 }

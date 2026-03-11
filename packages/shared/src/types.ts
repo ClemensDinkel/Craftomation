@@ -50,7 +50,8 @@ export interface Player {
   knownRecipes: string[];                   // recipeIds
   technologies: string[];
   cash: number;
-  currentMineResource: string | null;
+  mineResources: string[];              // selected resource IDs (rotated each tick)
+  mineResourceIndex: number;            // index into mineResources for next production
   mineBoostUntil: number | null;       // timestamp when boost expires
   mineBoostCooldownUntil: number | null; // timestamp when cooldown expires
   manufacturingQueue: ManufacturingJob[];

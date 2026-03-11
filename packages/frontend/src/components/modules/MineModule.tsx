@@ -35,8 +35,8 @@ export function MineModule({ send }: MineModuleProps) {
     send({ type: WSMessageType.BOOST_MINE_PLAYER, payload: { playerId } });
   };
 
-  const handleChangeResource = (playerId: string, resourceId: string) => {
-    send({ type: WSMessageType.CHANGE_MINE_RESOURCE, payload: { playerId, resourceId } });
+  const handleChangeResources = (playerId: string, resourceIds: string[]) => {
+    send({ type: WSMessageType.CHANGE_MINE_RESOURCE, payload: { playerId, resourceIds } });
   };
 
   return (
@@ -78,7 +78,7 @@ export function MineModule({ send }: MineModuleProps) {
             player={player}
             resources={resources}
             onBoost={handleBoost}
-            onChangeResource={handleChangeResource}
+            onChangeResources={handleChangeResources}
           />
         ))}
       </div>
@@ -90,10 +90,10 @@ interface PlayerRowProps {
   player: Player;
   resources: Resource[];
   onBoost: (playerId: string) => void;
-  onChangeResource: (playerId: string, resourceId: string) => void;
+  onChangeResources: (playerId: string, resourceIds: string[]) => void;
 }
 
-function PlayerRow({ player, resources, onBoost, onChangeResource }: PlayerRowProps) {
+function PlayerRow({ player, resources, onBoost, onChangeResources }: PlayerRowProps) {
   const { t } = useLocale();
   const [now, setNow] = useState(Date.now());
 
@@ -119,50 +119,68 @@ function PlayerRow({ player, resources, onBoost, onChangeResource }: PlayerRowPr
     ? 'bg-green-900/40 border-green-700/50'
     : 'bg-gray-800/60 border-gray-700/50';
 
-  const selectedResource = resources.find(r => r.id === player.currentMineResource);
+  const selectedIds = new Set(player.mineResources);
+
+  const handleToggleResource = (resourceId: string) => {
+    const newIds = selectedIds.has(resourceId)
+      ? player.mineResources.filter(id => id !== resourceId)
+      : [...player.mineResources, resourceId];
+    onChangeResources(player.id, newIds);
+  };
+
+  const handleToggleAll = () => {
+    const allSelected = resources.length === selectedIds.size;
+    onChangeResources(player.id, allSelected ? [] : resources.map(r => r.id));
+  };
 
   return (
-    <div className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${bgClass}`}>
-      <span className="flex-1 text-white font-medium truncate">{player.name}</span>
+    <div className={`flex flex-col gap-2 rounded-lg border px-3 py-2 ${bgClass}`}>
+      <div className="flex items-center gap-3">
+        <span className="flex-1 text-white font-medium truncate">{player.name}</span>
 
-      <button
-        onClick={() => onBoost(player.id)}
-        disabled={!isReady}
-        className={`shrink-0 px-3 py-1 rounded-md text-sm font-medium transition-colors min-w-[5rem] ${
-          isBoosted
-            ? 'bg-green-600 text-white cursor-default'
+        <button
+          onClick={() => onBoost(player.id)}
+          disabled={!isReady}
+          className={`shrink-0 px-3 py-1 rounded-md text-sm font-medium transition-colors min-w-[5rem] ${
+            isBoosted
+              ? 'bg-green-600 text-white cursor-default'
+              : isCooldown
+                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-amber-600 hover:bg-amber-700 text-white'
+          }`}
+        >
+          {isBoosted
+            ? `${t('mine.boosted')} ${remainingSeconds}s`
             : isCooldown
-              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              : 'bg-amber-600 hover:bg-amber-700 text-white'
-        }`}
-      >
-        {isBoosted
-          ? `${t('mine.boosted')} ${remainingSeconds}s`
-          : isCooldown
-            ? `${remainingSeconds}s`
-            : t('mine.boost')}
-      </button>
+              ? `${remainingSeconds}s`
+              : t('mine.boost')}
+        </button>
 
-      <ResourceDropdown
-        resources={resources}
-        selected={selectedResource ?? null}
-        placeholder={t('mine.selectResource')}
-        onChange={resId => onChangeResource(player.id, resId)}
-      />
+        <ResourceMultiSelect
+          resources={resources}
+          selectedIds={selectedIds}
+          onToggle={handleToggleResource}
+          onToggleAll={handleToggleAll}
+        />
+      </div>
     </div>
   );
 }
 
-function ResourceDropdown({ resources, selected, placeholder, onChange }: {
+function ResourceMultiSelect({ resources, selectedIds, onToggle, onToggleAll }: {
   resources: Resource[];
-  selected: Resource | null;
-  placeholder: string;
-  onChange: (resId: string) => void;
+  selectedIds: Set<string>;
+  onToggle: (resourceId: string) => void;
+  onToggleAll: () => void;
 }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  const allSelected = resources.length > 0 && selectedIds.size === resources.length;
+  const noneSelected = selectedIds.size === 0;
 
   const updatePos = useCallback(() => {
     if (!btnRef.current) return;
@@ -190,6 +208,8 @@ function ResourceDropdown({ resources, selected, placeholder, onChange }: {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
+  const selectedResources = resources.filter(r => selectedIds.has(r.id));
+
   return (
     <div className="shrink-0">
       <button
@@ -197,18 +217,23 @@ function ResourceDropdown({ resources, selected, placeholder, onChange }: {
         onClick={handleToggle}
         className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm text-white hover:bg-gray-600 transition-colors"
       >
-        {selected ? (
-          <>
-            <span
-              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white"
-              style={{ backgroundColor: selected.color }}
-            >
-              {selected.initialLetter}
-            </span>
-            <span>{selected.name}</span>
-          </>
+        {noneSelected ? (
+          <span className="text-gray-400">{t('mine.noResources')}</span>
+        ) : allSelected ? (
+          <span className="text-gray-300">{t('mine.allResources')}</span>
         ) : (
-          <span className="text-gray-400">{placeholder}</span>
+          <span className="flex items-center gap-1">
+            {selectedResources.map(r => (
+              <span
+                key={r.id}
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white"
+                style={{ backgroundColor: r.color }}
+                title={r.name}
+              >
+                {r.initialLetter}
+              </span>
+            ))}
+          </span>
         )}
         <span className="text-gray-400 ml-1 text-xs">▼</span>
       </button>
@@ -219,23 +244,42 @@ function ResourceDropdown({ resources, selected, placeholder, onChange }: {
           className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg py-1 min-w-[10rem]"
           style={{ top: pos.top, right: pos.right }}
         >
-          {resources.map(r => (
-            <button
-              key={r.id}
-              onClick={() => { onChange(r.id); setOpen(false); }}
-              className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-gray-700 transition-colors ${
-                selected?.id === r.id ? 'bg-gray-700/50' : ''
-              }`}
-            >
-              <span
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shrink-0"
-                style={{ backgroundColor: r.color }}
+          <button
+            onClick={onToggleAll}
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-gray-700 transition-colors border-b border-gray-700"
+          >
+            <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${
+              allSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-gray-500 text-gray-500'
+            }`}>
+              {allSelected ? '✓' : ''}
+            </span>
+            <span className="text-gray-300">{t('mine.allResources')}</span>
+          </button>
+          {resources.map(r => {
+            const isSelected = selectedIds.has(r.id);
+            return (
+              <button
+                key={r.id}
+                onClick={() => onToggle(r.id)}
+                className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-gray-700 transition-colors ${
+                  isSelected ? 'bg-gray-700/50' : ''
+                }`}
               >
-                {r.initialLetter}
-              </span>
-              <span className="text-white">{r.name}</span>
-            </button>
-          ))}
+                <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${
+                  isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-gray-500 text-gray-500'
+                }`}>
+                  {isSelected ? '✓' : ''}
+                </span>
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shrink-0"
+                  style={{ backgroundColor: r.color }}
+                >
+                  {r.initialLetter}
+                </span>
+                <span className="text-white">{r.name}</span>
+              </button>
+            );
+          })}
         </div>,
         document.body,
       )}

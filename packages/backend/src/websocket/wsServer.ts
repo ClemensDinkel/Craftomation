@@ -62,7 +62,7 @@ function handleMessage(clientId: string, message: WSMessage): void {
       handleBoostMinePlayer(message.payload as { playerId: string });
       break;
     case WSMessageType.CHANGE_MINE_RESOURCE:
-      handleChangeMineResource(message.payload as { playerId: string; resourceId: string });
+      handleChangeMineResource(message.payload as { playerId: string; resourceIds: string[] });
       break;
     case WSMessageType.ADD_MANUFACTURING_JOB:
       handleAddManufacturingJob(message.payload as { playerId: string; recipeId: string; repeat: boolean });

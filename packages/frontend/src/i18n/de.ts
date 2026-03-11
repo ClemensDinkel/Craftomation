@@ -72,6 +72,8 @@ export const de: Record<string, string> = {
   'mine.boost': 'Boost',
   'mine.boosted': 'Boost',
   'mine.selectResource': 'Ressource wählen',
+  'mine.noResources': 'Keine Ressourcen',
+  'mine.allResources': 'Alle Ressourcen',
 
   // Lab Module
   'lab.title': 'Labor',
