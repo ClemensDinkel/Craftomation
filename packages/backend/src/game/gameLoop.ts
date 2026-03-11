@@ -4,15 +4,16 @@ import { broadcast } from '../websocket/wsServer';
 
 const TICK_BASE_MS = 10_000;
 const TICK_SECONDS = 10;
-const REFERENCE_SUPPLY = 100;
+const RESOURCE_REFERENCE_SUPPLY = 100;
+const CONSUMABLE_REFERENCE_SUPPLY = 15;
 
 let loopTimer: NodeJS.Timeout | null = null;
 
 const BASE_PRICES: Record<number, number> = {
-  1: 10,
-  2: 25,
-  3: 60,
-  4: 150,
+  1: 12,
+  2: 20,
+  3: 32,
+  4: 50,
 };
 
 // --- Tick Processing ---
@@ -152,7 +153,7 @@ function processPriceAdjustment(): void {
   // Resource prices
   for (const entry of Object.values(market.resources)) {
     const basePrice = 5; // RESOURCE_BASE_PRICE
-    const newPrice = basePrice * (REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+    const newPrice = basePrice * (RESOURCE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
     entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
   }
 
@@ -162,7 +163,7 @@ function processPriceAdjustment(): void {
     const entry = market.consumables[recipe.id];
     if (!entry) continue;
 
-    const newPrice = basePrice * (REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+    const newPrice = basePrice * (CONSUMABLE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
     entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
   }
 }

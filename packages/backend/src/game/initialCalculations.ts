@@ -22,10 +22,10 @@ const RESOURCE_COLORS = [
 ];
 
 const BASE_PRICES: Record<number, number> = {
-  1: 10,
-  2: 25,
-  3: 60,
-  4: 150,
+  1: 12,
+  2: 20,
+  3: 32,
+  4: 50,
 };
 
 const RESOURCE_BASE_PRICE = 5;
@@ -136,7 +136,7 @@ function initializeMarket(config: SessionConfig, resources: Resource[], recipes:
     recipeListings: [],
   };
 
-  const resourceConsumption = (config.playerCount / config.resourceTypeCount) * 0.8;
+  const resourceConsumption = (config.playerCount / config.resourceTypeCount) * 0.4;
   for (const res of resources) {
     market.resources[res.id] = {
       supply: 100,

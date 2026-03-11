@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
 import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
 import { handleLabExperiment } from '../handlers/labHandler';
+import { handleMarketBuy, handleMarketSell, handleListRecipe, handleBuyRecipe } from '../handlers/auctionHandler';
 import url from 'url';
 
 let wss: WebSocketServer;
@@ -79,16 +80,16 @@ function handleMessage(clientId: string, message: WSMessage): void {
       break;
     }
     case WSMessageType.MARKET_BUY:
-      // TODO: Handle market buy
+      handleMarketBuy(clientId, message.payload as { playerId: string; itemId: string; itemType: 'resource' | 'consumable'; amount: number });
       break;
     case WSMessageType.MARKET_SELL:
-      // TODO: Handle market sell
+      handleMarketSell(clientId, message.payload as { playerId: string; itemId: string; itemType: 'resource' | 'consumable'; amount: number });
       break;
     case WSMessageType.LIST_RECIPE:
-      // TODO: Handle list recipe
+      handleListRecipe(clientId, message.payload as { playerId: string; recipeId: string; price: number });
       break;
     case WSMessageType.BUY_RECIPE:
-      // TODO: Handle buy recipe
+      handleBuyRecipe(clientId, message.payload as { buyerPlayerId: string; listingId: string });
       break;
     default:
       console.warn(`[WS] Unknown message type: ${message.type}`);

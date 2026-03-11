@@ -106,6 +106,28 @@ export const en: Record<string, string> = {
   'manufacturing.addOnce': 'Add once',
   'manufacturing.repeatToggle': 'Toggle repeat',
 
+  // Auction Module
+  'auction.title': 'Auction Hall',
+  'auction.noPlayers': 'No players yet',
+  'auction.tabGoods': 'Goods',
+  'auction.tabRecipes': 'Recipes',
+  'auction.resources': 'Resources',
+  'auction.consumables': 'Consumables',
+  'auction.noItems': 'No goods available',
+  'auction.noListings': 'No recipe listings',
+  'auction.seller': 'Seller',
+  'auction.buy': 'Buy',
+  'auction.ownListing': 'Your listing',
+  'auction.alreadyKnown': 'Already known',
+  'auction.listRecipe': 'List Recipe',
+  'auction.recipe': 'Recipe',
+  'auction.pricePlaceholder': 'Enter price',
+  'auction.list': 'List',
+  'auction.noRecipesToList': 'No recipes to list',
+  'auction.colPlayer': 'Player',
+  'auction.colMarket': 'Market',
+  'auction.colPrice': 'Price',
+
   // Common
   'common.back': 'Back',
   'common.cancel': 'Cancel',

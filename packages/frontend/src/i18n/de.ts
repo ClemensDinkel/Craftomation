@@ -106,6 +106,28 @@ export const de: Record<string, string> = {
   'manufacturing.addOnce': 'Einmal hinzufügen',
   'manufacturing.repeatToggle': 'Dauerproduktion umschalten',
 
+  // Auction Module
+  'auction.title': 'Auktionshalle',
+  'auction.noPlayers': 'Noch keine Spieler vorhanden',
+  'auction.tabGoods': 'Güter',
+  'auction.tabRecipes': 'Rezepte',
+  'auction.resources': 'Ressourcen',
+  'auction.consumables': 'Konsumgüter',
+  'auction.noItems': 'Keine Güter verfügbar',
+  'auction.noListings': 'Keine Rezeptangebote vorhanden',
+  'auction.seller': 'Verkäufer',
+  'auction.buy': 'Kaufen',
+  'auction.ownListing': 'Eigenes Angebot',
+  'auction.alreadyKnown': 'Bereits bekannt',
+  'auction.listRecipe': 'Rezept anbieten',
+  'auction.recipe': 'Rezept',
+  'auction.pricePlaceholder': 'Preis eingeben',
+  'auction.list': 'Anbieten',
+  'auction.noRecipesToList': 'Keine Rezepte zum Anbieten',
+  'auction.colPlayer': 'Spieler',
+  'auction.colMarket': 'Markt',
+  'auction.colPrice': 'Preis',
+
   // Common
   'common.back': 'Zurück',
   'common.cancel': 'Abbrechen',

@@ -6,6 +6,7 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { MineModule } from '@/components/modules/MineModule';
 import { ManufacturingModule } from '@/components/modules/ManufacturingModule';
 import { LabModule } from '@/components/modules/LabModule';
+import { AuctionModule } from '@/components/modules/AuctionModule';
 
 export function GameShell() {
   const { t } = useLocale();
@@ -57,6 +58,8 @@ function ModuleRouter({ moduleType, send }: { moduleType: string | null; send: (
       return <ManufacturingModule send={send} />;
     case 'lab':
       return <LabModule send={send} />;
+    case 'auction':
+      return <AuctionModule send={send} />;
     default:
       return (
         <div className="flex items-center justify-center h-64 bg-gray-800 rounded-xl">
