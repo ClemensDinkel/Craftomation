@@ -125,6 +125,7 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           resources={resources}
           market={market}
           playerMap={playerMap}
+          maxSlots={Math.max(1, Math.floor(players.length / 10))}
           onBuyRight={handleBuyMiningRight}
         />
       )}
@@ -460,11 +461,12 @@ function RecipesTab({ player, market, recipes, playerMap, onBuyRecipe, onOpenLis
 
 // === Rights Tab ===
 
-function RightsTab({ player, resources, market, playerMap, onBuyRight }: {
+function RightsTab({ player, resources, market, playerMap, maxSlots, onBuyRight }: {
   player: Player;
   resources: Resource[];
   market: MarketState;
   playerMap: Record<string, Player>;
+  maxSlots: number;
   onBuyRight: (resourceId: string) => void;
 }) {
   const { t } = useLocale();
@@ -474,30 +476,34 @@ function RightsTab({ player, resources, market, playerMap, onBuyRight }: {
     <div className="flex flex-col gap-2 overflow-y-auto">
       <p className="text-xs text-gray-500 mb-1">{t('auction.rightsInfo')}</p>
       {resources.map(res => {
-        const right = market.miningRights[res.id];
-        const isActive = right && now < right.expiresAt;
-        const isHolder = isActive && right.holderId === player.id;
-        const holder = isActive ? playerMap[right.holderId] : null;
-        const remainingMin = isActive ? Math.ceil((right.expiresAt - now) / 60000) : 0;
+        const rights = (market.miningRights[res.id] ?? []).filter(r => now < r.expiresAt);
+        const playerHoldsRight = rights.some(r => r.holderId === player.id);
+        const openSlots = maxSlots - rights.length;
+        const hasAnyRight = rights.length > 0;
 
         const resourceEntry = market.resources[res.id];
-        const buyPrice = isActive
-          ? Math.round(right.pricePaid * 1.5 * 100) / 100
-          : Math.round((resourceEntry?.price ?? 5) * 20 * 100) / 100;
 
-        const canAfford = player.cash >= buyPrice;
+        // Buy price: open slot = resourcePrice × 20, full = cheapest.pricePaid × 1.5
+        let nextPrice: number;
+        if (openSlots > 0) {
+          nextPrice = Math.round((resourceEntry?.price ?? 5) * 20 * 100) / 100;
+        } else {
+          const cheapest = rights.reduce((min, r) => r.pricePaid < min.pricePaid ? r : min, rights[0]);
+          nextPrice = Math.round(cheapest.pricePaid * 1.5 * 100) / 100;
+        }
+
+        const canAfford = player.cash >= nextPrice;
+
+        // Determine card border style
+        const borderClass = playerHoldsRight
+          ? 'border-amber-600/50 bg-amber-900/20'
+          : hasAnyRight
+            ? 'border-red-700/50 bg-red-900/10'
+            : 'border-gray-700/50 bg-gray-800/60';
 
         return (
-          <div
-            key={res.id}
-            className={`rounded-lg border px-3 py-2 ${
-              isHolder
-                ? 'border-amber-600/50 bg-amber-900/20'
-                : isActive
-                  ? 'border-red-700/50 bg-red-900/10'
-                  : 'border-gray-700/50 bg-gray-800/60'
-            }`}
-          >
+          <div key={res.id} className={`rounded-lg border px-3 py-2 ${borderClass}`}>
+            {/* Resource header */}
             <div className="flex items-center gap-2 mb-1">
               <span
                 className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shrink-0"
@@ -506,29 +512,46 @@ function RightsTab({ player, resources, market, playerMap, onBuyRight }: {
                 {res.initialLetter}
               </span>
               <span className="text-white font-medium flex-1">{res.name}</span>
-              {isActive && (
-                <span className="text-xs text-gray-400">{remainingMin} min</span>
-              )}
+              <span className="text-[10px] text-gray-500">
+                {rights.length}/{maxSlots}
+              </span>
             </div>
+
+            {/* Current holders */}
+            {rights.length > 0 && (
+              <div className="flex flex-col gap-0.5 mb-1.5">
+                {rights.map(r => {
+                  const holder = playerMap[r.holderId];
+                  const remainingMin = Math.ceil((r.expiresAt - now) / 60000);
+                  const isOwn = r.holderId === player.id;
+                  return (
+                    <div key={r.id} className="flex items-center justify-between text-xs">
+                      <span className={isOwn ? 'text-amber-400' : 'text-gray-400'}>
+                        {isOwn ? t('auction.yourRight') : (holder?.name ?? '?')}
+                      </span>
+                      <span className="text-gray-500">{remainingMin} min</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Action row */}
             <div className="flex items-center justify-between">
-              {isActive ? (
-                <span className="text-xs text-gray-400">
-                  {isHolder ? t('auction.youHoldRight') : `${holder?.name ?? '?'}`}
-                </span>
-              ) : (
-                <span className="text-xs text-gray-500">{t('auction.noHolder')}</span>
-              )}
-              {isHolder ? (
-                <span className="text-xs text-amber-400 font-medium">{t('auction.yourRight')}</span>
-              ) : (
+              <span className="text-xs text-gray-500">
+                {openSlots > 0
+                  ? `${openSlots} ${t('auction.slotsAvailable')}`
+                  : t('auction.slotsFull')}
+              </span>
+              {!playerHoldsRight && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-400 font-mono">${buyPrice}</span>
+                  <span className="text-xs text-green-400 font-mono">${nextPrice}</span>
                   <Button
                     size="sm"
                     onClick={() => onBuyRight(res.id)}
                     disabled={!canAfford}
                   >
-                    {isActive ? t('auction.overbid') : t('auction.buyRight')}
+                    {openSlots > 0 ? t('auction.buyRight') : t('auction.overbid')}
                   </Button>
                 </div>
               )}

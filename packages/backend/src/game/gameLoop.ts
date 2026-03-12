@@ -26,8 +26,9 @@ function processMining(players: Player[]): void {
   const market = gameState.getMarket();
 
   // Clean up expired mining rights
-  for (const [resId, right] of Object.entries(market.miningRights)) {
-    if (now >= right.expiresAt) {
+  for (const resId of Object.keys(market.miningRights)) {
+    market.miningRights[resId] = market.miningRights[resId].filter(r => now < r.expiresAt);
+    if (market.miningRights[resId].length === 0) {
       delete market.miningRights[resId];
     }
   }
@@ -40,9 +41,9 @@ function processMining(players: Player[]): void {
     let amount = isBoosted ? 1.5 : 1;
 
     // Apply mining right multiplier
-    const right = market.miningRights[resourceId];
-    if (right) {
-      amount *= right.holderId === player.id
+    const rights = market.miningRights[resourceId];
+    if (rights && rights.length > 0) {
+      amount *= rights.some(r => r.holderId === player.id)
         ? MINING_RIGHT_HOLDER_MULTIPLIER
         : MINING_RIGHT_OTHER_MULTIPLIER;
     }

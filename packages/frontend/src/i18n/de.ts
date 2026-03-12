@@ -131,6 +131,8 @@ export const de: Record<string, string> = {
   'auction.yourRight': 'Dein Recht',
   'auction.buyRight': 'Kaufen',
   'auction.overbid': 'Überbieten',
+  'auction.slotsAvailable': 'Plätze frei',
+  'auction.slotsFull': 'Alle Plätze belegt',
   'auction.colPlayer': 'Spieler',
   'auction.colMarket': 'Markt',
   'auction.colPrice': 'Preis',

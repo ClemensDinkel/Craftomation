@@ -91,7 +91,7 @@ export function MineModule({ send }: MineModuleProps) {
 interface PlayerRowProps {
   player: Player;
   resources: Resource[];
-  miningRights: Record<string, MiningRight>;
+  miningRights: Record<string, MiningRight[]>;
   onBoost: (playerId: string) => void;
   onChangeResources: (playerId: string, resourceIds: string[]) => void;
 }
@@ -105,7 +105,7 @@ function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources
   const isReady = !isBoosted && !isCooldown;
 
   const hasActiveRights = player.mineResources.some(
-    resId => miningRights[resId] && Date.now() < miningRights[resId].expiresAt,
+    resId => (miningRights[resId] ?? []).some(r => now < r.expiresAt),
   );
 
   // Tick every second while boost, cooldown, or mining rights are active
@@ -122,17 +122,20 @@ function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources
       ? Math.ceil((player.mineBoostCooldownUntil! - now) / 1000)
       : 0;
 
-  const bgClass = isBoosted
-    ? 'bg-green-900/40 border-green-700/50'
-    : 'bg-gray-800/60 border-gray-700/50';
-
   // Check which of the player's selected resources have active rights
   const heldRights = player.mineResources.filter(
-    resId => miningRights[resId] && now < miningRights[resId].expiresAt && miningRights[resId].holderId === player.id,
+    resId => (miningRights[resId] ?? []).some(r => now < r.expiresAt && r.holderId === player.id),
   );
-  const penalizedResources = player.mineResources.filter(
-    resId => miningRights[resId] && now < miningRights[resId].expiresAt && miningRights[resId].holderId !== player.id,
-  );
+  const penalizedResources = player.mineResources.filter(resId => {
+    const rights = (miningRights[resId] ?? []).filter(r => now < r.expiresAt);
+    return rights.length > 0 && !rights.some(r => r.holderId === player.id);
+  });
+
+  const bgClass = isBoosted
+    ? 'bg-green-900/40 border-green-700/50'
+    : heldRights.length > 0
+      ? 'bg-gray-800/60 border-green-600/60'
+      : 'bg-gray-800/60 border-gray-700/50';
 
   const selectedIds = new Set(player.mineResources);
 
@@ -154,15 +157,8 @@ function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources
         <span className="flex-1 text-white font-medium truncate flex items-center gap-1.5">
           {player.name}
           {heldRights.length > 0 && (
-            <span className="text-amber-400 text-xs" title={`${heldRights.length}x 2x`}>
-              {heldRights.map(resId => {
-                const res = resources.find(r => r.id === resId);
-                return res ? (
-                  <span key={resId} className="inline-flex items-center gap-0.5">
-                    <span className="text-[10px]" style={{ color: res.color }}>&#9813;</span>
-                  </span>
-                ) : null;
-              })}
+            <span className="text-green-400 text-[10px]" title={`${heldRights.length}x 2x`}>
+              &#9650;
             </span>
           )}
           {penalizedResources.length > 0 && (
@@ -193,6 +189,9 @@ function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources
         <ResourceMultiSelect
           resources={resources}
           selectedIds={selectedIds}
+          miningRights={miningRights}
+          playerId={player.id}
+          now={now}
           onToggle={handleToggleResource}
           onToggleAll={handleToggleAll}
         />
@@ -201,9 +200,12 @@ function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources
   );
 }
 
-function ResourceMultiSelect({ resources, selectedIds, onToggle, onToggleAll }: {
+function ResourceMultiSelect({ resources, selectedIds, miningRights, playerId, now, onToggle, onToggleAll }: {
   resources: Resource[];
   selectedIds: Set<string>;
+  miningRights: Record<string, MiningRight[]>;
+  playerId: string;
+  now: number;
   onToggle: (resourceId: string) => void;
   onToggleAll: () => void;
 }) {
@@ -291,6 +293,9 @@ function ResourceMultiSelect({ resources, selectedIds, onToggle, onToggleAll }: 
           </button>
           {resources.map(r => {
             const isSelected = selectedIds.has(r.id);
+            const rights = (miningRights[r.id] ?? []).filter(mr => now < mr.expiresAt);
+            const hasBonus = rights.some(mr => mr.holderId === playerId);
+            const hasMalus = !hasBonus && rights.length > 0;
             return (
               <button
                 key={r.id}
@@ -310,7 +315,9 @@ function ResourceMultiSelect({ resources, selectedIds, onToggle, onToggleAll }: 
                 >
                   {r.initialLetter}
                 </span>
-                <span className="text-white">{r.name}</span>
+                <span className="text-white flex-1">{r.name}</span>
+                {hasBonus && <span className="text-green-400 text-[10px]" title="2x">&#9650;</span>}
+                {hasMalus && <span className="text-red-400 text-[10px]" title="0.5x">&#9660;</span>}
               </button>
             );
           })}

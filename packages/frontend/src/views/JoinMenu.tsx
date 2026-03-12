@@ -119,5 +119,3 @@ export function JoinMenu() {
     </div>
   );
 }
-
-// todo join testen, mehrere fenster / browser instanzen / geräte ? 
