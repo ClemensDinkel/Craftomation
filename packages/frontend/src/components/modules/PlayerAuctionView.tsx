@@ -14,7 +14,7 @@ interface Props {
   onBack: () => void;
 }
 
-type Tab = 'goods' | 'recipes';
+type Tab = 'goods' | 'recipes' | 'rights';
 
 export function PlayerAuctionView({ player, players, resources, recipes, market, send, onBack }: Props) {
   const { t } = useLocale();
@@ -35,6 +35,10 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
 
   const handleSell = (itemId: string, itemType: 'resource' | 'consumable', amount: number) => {
     send({ type: WSMessageType.MARKET_SELL, payload: { playerId: player.id, itemId, itemType, amount } });
+  };
+
+  const handleBuyMiningRight = (resourceId: string) => {
+    send({ type: WSMessageType.BUY_MINING_RIGHT, payload: { playerId: player.id, resourceId } });
   };
 
   const handleBuyRecipe = (listingId: string) => {
@@ -93,6 +97,14 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           >
             {t('auction.tabRecipes')}
           </button>
+          <button
+            onClick={() => setTab('rights')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              tab === 'rights' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            {t('auction.tabRights')}
+          </button>
         </div>
       </div>
 
@@ -104,6 +116,16 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           market={market}
           onBuy={handleBuy}
           onSell={handleSell}
+        />
+      )}
+
+      {tab === 'rights' && market && (
+        <RightsTab
+          player={player}
+          resources={resources}
+          market={market}
+          playerMap={playerMap}
+          onBuyRight={handleBuyMiningRight}
         />
       )}
 
@@ -432,6 +454,88 @@ function RecipesTab({ player, market, recipes, playerMap, onBuyRecipe, onOpenLis
           +
         </button>
       )}
+    </div>
+  );
+}
+
+// === Rights Tab ===
+
+function RightsTab({ player, resources, market, playerMap, onBuyRight }: {
+  player: Player;
+  resources: Resource[];
+  market: MarketState;
+  playerMap: Record<string, Player>;
+  onBuyRight: (resourceId: string) => void;
+}) {
+  const { t } = useLocale();
+  const now = Date.now();
+
+  return (
+    <div className="flex flex-col gap-2 overflow-y-auto">
+      <p className="text-xs text-gray-500 mb-1">{t('auction.rightsInfo')}</p>
+      {resources.map(res => {
+        const right = market.miningRights[res.id];
+        const isActive = right && now < right.expiresAt;
+        const isHolder = isActive && right.holderId === player.id;
+        const holder = isActive ? playerMap[right.holderId] : null;
+        const remainingMin = isActive ? Math.ceil((right.expiresAt - now) / 60000) : 0;
+
+        const resourceEntry = market.resources[res.id];
+        const buyPrice = isActive
+          ? Math.round(right.pricePaid * 1.5 * 100) / 100
+          : Math.round((resourceEntry?.price ?? 5) * 20 * 100) / 100;
+
+        const canAfford = player.cash >= buyPrice;
+
+        return (
+          <div
+            key={res.id}
+            className={`rounded-lg border px-3 py-2 ${
+              isHolder
+                ? 'border-amber-600/50 bg-amber-900/20'
+                : isActive
+                  ? 'border-red-700/50 bg-red-900/10'
+                  : 'border-gray-700/50 bg-gray-800/60'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shrink-0"
+                style={{ backgroundColor: res.color }}
+              >
+                {res.initialLetter}
+              </span>
+              <span className="text-white font-medium flex-1">{res.name}</span>
+              {isActive && (
+                <span className="text-xs text-gray-400">{remainingMin} min</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              {isActive ? (
+                <span className="text-xs text-gray-400">
+                  {isHolder ? t('auction.youHoldRight') : `${holder?.name ?? '?'}`}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-500">{t('auction.noHolder')}</span>
+              )}
+              {isHolder ? (
+                <span className="text-xs text-amber-400 font-medium">{t('auction.yourRight')}</span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-green-400 font-mono">${buyPrice}</span>
+                  <Button
+                    size="sm"
+                    onClick={() => onBuyRight(res.id)}
+                    disabled={!canAfford}
+                  >
+                    {isActive ? t('auction.overbid') : t('auction.buyRight')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

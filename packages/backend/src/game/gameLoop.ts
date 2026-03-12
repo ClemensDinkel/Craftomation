@@ -18,15 +18,34 @@ const BASE_PRICES: Record<number, number> = {
 
 // --- Tick Processing ---
 
+const MINING_RIGHT_HOLDER_MULTIPLIER = 2.0;
+const MINING_RIGHT_OTHER_MULTIPLIER = 0.5;
+
 function processMining(players: Player[]): void {
   const now = Date.now();
+  const market = gameState.getMarket();
+
+  // Clean up expired mining rights
+  for (const [resId, right] of Object.entries(market.miningRights)) {
+    if (now >= right.expiresAt) {
+      delete market.miningRights[resId];
+    }
+  }
 
   for (const player of players) {
     if (player.mineResources.length === 0) continue;
 
     const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
     const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
-    const amount = isBoosted ? 1.5 : 1;
+    let amount = isBoosted ? 1.5 : 1;
+
+    // Apply mining right multiplier
+    const right = market.miningRights[resourceId];
+    if (right) {
+      amount *= right.holderId === player.id
+        ? MINING_RIGHT_HOLDER_MULTIPLIER
+        : MINING_RIGHT_OTHER_MULTIPLIER;
+    }
 
     player.resources[resourceId] = (player.resources[resourceId] ?? 0) + amount;
 

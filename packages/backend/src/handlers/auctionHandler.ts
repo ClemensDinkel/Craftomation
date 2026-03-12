@@ -8,6 +8,11 @@ const CONSUMABLE_REFERENCE_SUPPLY = 15;
 const RESOURCE_BASE_PRICE = 5;
 const BASE_PRICES: Record<number, number> = { 1: 12, 2: 20, 3: 32, 4: 50 };
 
+const MINING_RIGHT_PRICE_MULTIPLIER = 20;
+const MINING_RIGHT_OVERBID_MULTIPLIER = 1.5;
+const MINING_RIGHT_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+const MINING_RIGHT_SLOTS_PER_PLAYERS = 10; // 1 slot per N players, min 1
+
 function broadcastGameState(): void {
   broadcast({
     type: WSMessageType.GAME_STATE_UPDATE,
@@ -212,6 +217,89 @@ export function handleBuyRecipe(
   market.recipeListings.splice(listingIndex, 1);
 
   gameState.setPlayer(buyerPlayerId, buyer);
+  gameState.setMarket(market);
+  broadcastGameState();
+}
+
+function getMaxRightSlots(): number {
+  const config = gameState.getConfig();
+  const playerCount = config?.playerCount ?? 4;
+  return Math.max(1, Math.floor(playerCount / MINING_RIGHT_SLOTS_PER_PLAYERS));
+}
+
+export function handleBuyMiningRight(
+  clientId: string,
+  payload: { playerId: string; resourceId: string },
+): void {
+  const { playerId, resourceId } = payload;
+
+  const player = gameState.getPlayer(playerId);
+  if (!player) return;
+
+  const market = gameState.getMarket();
+  const resourceEntry = market.resources[resourceId];
+  if (!resourceEntry) return;
+
+  const now = Date.now();
+  const maxSlots = getMaxRightSlots();
+
+  // Clean expired rights for this resource
+  const rights = (market.miningRights[resourceId] ?? []).filter(r => now < r.expiresAt);
+  market.miningRights[resourceId] = rights;
+
+  // Player already holds a right for this resource
+  if (rights.some(r => r.holderId === playerId)) return;
+
+  if (rights.length < maxSlots) {
+    // Open slot: buy at base price
+    const price = Math.round(resourceEntry.price * MINING_RIGHT_PRICE_MULTIPLIER * 100) / 100;
+
+    if (player.cash < price) {
+      sendError(clientId, 'Not enough cash');
+      return;
+    }
+
+    player.cash = Math.round((player.cash - price) * 100) / 100;
+
+    rights.push({
+      id: uuidv4(),
+      resourceId,
+      holderId: playerId,
+      pricePaid: price,
+      expiresAt: now + MINING_RIGHT_DURATION_MS,
+    });
+  } else {
+    // All slots full: overbid the cheapest holder
+    const cheapest = rights.reduce((min, r) => r.pricePaid < min.pricePaid ? r : min, rights[0]);
+    const overbidPrice = Math.round(cheapest.pricePaid * MINING_RIGHT_OVERBID_MULTIPLIER * 100) / 100;
+
+    if (player.cash < overbidPrice) {
+      sendError(clientId, 'Not enough cash');
+      return;
+    }
+
+    // Refund old holder
+    const oldHolder = gameState.getPlayer(cheapest.holderId);
+    if (oldHolder) {
+      oldHolder.cash = Math.round((oldHolder.cash + cheapest.pricePaid) * 100) / 100;
+      gameState.setPlayer(oldHolder.id, oldHolder);
+    }
+
+    player.cash = Math.round((player.cash - overbidPrice) * 100) / 100;
+
+    // Replace cheapest with new right
+    const idx = rights.indexOf(cheapest);
+    rights[idx] = {
+      id: uuidv4(),
+      resourceId,
+      holderId: playerId,
+      pricePaid: overbidPrice,
+      expiresAt: now + MINING_RIGHT_DURATION_MS,
+    };
+  }
+
+  market.miningRights[resourceId] = rights;
+  gameState.setPlayer(playerId, player);
   gameState.setMarket(market);
   broadcastGameState();
 }

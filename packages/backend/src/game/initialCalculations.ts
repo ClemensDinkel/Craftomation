@@ -134,6 +134,7 @@ function initializeMarket(config: SessionConfig, resources: Resource[], recipes:
     resources: {},
     consumables: {},
     recipeListings: [],
+    miningRights: {},
   };
 
   const resourceConsumption = (config.playerCount / config.resourceTypeCount) * 0.4;

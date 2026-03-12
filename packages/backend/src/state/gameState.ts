@@ -27,6 +27,7 @@ function createDefaultMarket(): MarketState {
     resources: {},
     consumables: {},
     recipeListings: [],
+    miningRights: {},
   };
 }
 

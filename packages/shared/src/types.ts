@@ -126,10 +126,19 @@ export interface RecipeListing {
   price: number;
 }
 
+export interface MiningRight {
+  id: string;
+  resourceId: string;
+  holderId: string;
+  pricePaid: number;          // what current holder paid
+  expiresAt: number;          // timestamp
+}
+
 export interface MarketState {
   resources: Record<string, MarketEntry>;
   consumables: Record<string, MarketEntry>;
   recipeListings: RecipeListing[];
+  miningRights: Record<string, MiningRight[]>;  // resourceId -> rights (multiple slots)
 }
 
 // ==========================================
@@ -165,6 +174,7 @@ export enum WSMessageType {
   MARKET_SELL = 'MARKET_SELL',
   LIST_RECIPE = 'LIST_RECIPE',
   BUY_RECIPE = 'BUY_RECIPE',
+  BUY_MINING_RIGHT = 'BUY_MINING_RIGHT',
   DEBUG_UNLOCK_RECIPE = 'DEBUG_UNLOCK_RECIPE',
 
   // Server -> Client

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
-import type { Player, Resource, WSMessage } from '@craftomation/shared';
+import type { Player, Resource, MiningRight, WSMessage } from '@craftomation/shared';
 import { Button, Input, Dialog } from '@/components/ui';
 
 interface MineModuleProps {
@@ -23,6 +23,7 @@ export function MineModule({ send }: MineModuleProps) {
   }, [state.gameState?.players]);
 
   const resources: Resource[] = state.gameState?.resources ?? [];
+  const miningRights = state.gameState?.market?.miningRights ?? {};
 
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) return;
@@ -77,6 +78,7 @@ export function MineModule({ send }: MineModuleProps) {
             key={player.id}
             player={player}
             resources={resources}
+            miningRights={miningRights}
             onBoost={handleBoost}
             onChangeResources={handleChangeResources}
           />
@@ -89,11 +91,12 @@ export function MineModule({ send }: MineModuleProps) {
 interface PlayerRowProps {
   player: Player;
   resources: Resource[];
+  miningRights: Record<string, MiningRight>;
   onBoost: (playerId: string) => void;
   onChangeResources: (playerId: string, resourceIds: string[]) => void;
 }
 
-function PlayerRow({ player, resources, onBoost, onChangeResources }: PlayerRowProps) {
+function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources }: PlayerRowProps) {
   const { t } = useLocale();
   const [now, setNow] = useState(Date.now());
 
@@ -101,13 +104,17 @@ function PlayerRow({ player, resources, onBoost, onChangeResources }: PlayerRowP
   const isCooldown = !isBoosted && player.mineBoostCooldownUntil !== null && now < player.mineBoostCooldownUntil;
   const isReady = !isBoosted && !isCooldown;
 
-  // Tick every second while boost or cooldown is active
+  const hasActiveRights = player.mineResources.some(
+    resId => miningRights[resId] && Date.now() < miningRights[resId].expiresAt,
+  );
+
+  // Tick every second while boost, cooldown, or mining rights are active
   useEffect(() => {
-    if (!player.mineBoostUntil && !player.mineBoostCooldownUntil) return;
+    if (!player.mineBoostUntil && !player.mineBoostCooldownUntil && !hasActiveRights) return;
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [player.mineBoostUntil, player.mineBoostCooldownUntil]);
+  }, [player.mineBoostUntil, player.mineBoostCooldownUntil, hasActiveRights]);
 
   const remainingSeconds = isBoosted
     ? Math.ceil((player.mineBoostUntil! - now) / 1000)
@@ -118,6 +125,14 @@ function PlayerRow({ player, resources, onBoost, onChangeResources }: PlayerRowP
   const bgClass = isBoosted
     ? 'bg-green-900/40 border-green-700/50'
     : 'bg-gray-800/60 border-gray-700/50';
+
+  // Check which of the player's selected resources have active rights
+  const heldRights = player.mineResources.filter(
+    resId => miningRights[resId] && now < miningRights[resId].expiresAt && miningRights[resId].holderId === player.id,
+  );
+  const penalizedResources = player.mineResources.filter(
+    resId => miningRights[resId] && now < miningRights[resId].expiresAt && miningRights[resId].holderId !== player.id,
+  );
 
   const selectedIds = new Set(player.mineResources);
 
@@ -136,7 +151,26 @@ function PlayerRow({ player, resources, onBoost, onChangeResources }: PlayerRowP
   return (
     <div className={`flex flex-col gap-2 rounded-lg border px-3 py-2 ${bgClass}`}>
       <div className="flex items-center gap-3">
-        <span className="flex-1 text-white font-medium truncate">{player.name}</span>
+        <span className="flex-1 text-white font-medium truncate flex items-center gap-1.5">
+          {player.name}
+          {heldRights.length > 0 && (
+            <span className="text-amber-400 text-xs" title={`${heldRights.length}x 2x`}>
+              {heldRights.map(resId => {
+                const res = resources.find(r => r.id === resId);
+                return res ? (
+                  <span key={resId} className="inline-flex items-center gap-0.5">
+                    <span className="text-[10px]" style={{ color: res.color }}>&#9813;</span>
+                  </span>
+                ) : null;
+              })}
+            </span>
+          )}
+          {penalizedResources.length > 0 && (
+            <span className="text-red-400 text-[10px]" title={`${penalizedResources.length}x 0.5x`}>
+              &#9660;{penalizedResources.length}
+            </span>
+          )}
+        </span>
 
         <button
           onClick={() => onBoost(player.id)}
