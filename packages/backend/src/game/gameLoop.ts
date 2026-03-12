@@ -2,12 +2,15 @@ import { Player, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
 
-const TICK_BASE_MS = 10_000;
-const TICK_SECONDS = 10;
+const SUB_TICK_MS = 2_000;        // fast tick: every 2 seconds
+const ECONOMY_TICK_INTERVAL = 5;  // economy runs every 5 sub-ticks = 10 seconds
+const MINE_BASE_INTERVAL_MS = 10_000; // base: 1 resource every 10s
+
 const RESOURCE_REFERENCE_SUPPLY = 100;
 const CONSUMABLE_REFERENCE_SUPPLY = 15;
 
 let loopTimer: NodeJS.Timeout | null = null;
+let subTickCount = 0;
 
 const BASE_PRICES: Record<number, number> = {
   1: 12,
@@ -16,10 +19,33 @@ const BASE_PRICES: Record<number, number> = {
   4: 50,
 };
 
-// --- Tick Processing ---
+// --- Mining ---
 
 const MINING_RIGHT_HOLDER_MULTIPLIER = 2.0;
 const MINING_RIGHT_OTHER_MULTIPLIER = 0.5;
+
+function getMiningInterval(player: Player, resourceId: string): number {
+  const config = gameState.getConfig();
+  const speed = config?.gameSpeed ?? 1.0;
+  const now = Date.now();
+  const market = gameState.getMarket();
+
+  let multiplier = 1.0;
+
+  // Boost: 1.5x speed → interval / 1.5
+  const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
+  if (isBoosted) multiplier *= 1.5;
+
+  // Mining rights
+  const rights = market.miningRights[resourceId];
+  if (rights && rights.length > 0) {
+    multiplier *= rights.some(r => r.holderId === player.id)
+      ? MINING_RIGHT_HOLDER_MULTIPLIER
+      : MINING_RIGHT_OTHER_MULTIPLIER;
+  }
+
+  return Math.round(MINE_BASE_INTERVAL_MS / (speed * multiplier));
+}
 
 function processMining(players: Player[]): void {
   const now = Date.now();
@@ -36,24 +62,38 @@ function processMining(players: Player[]): void {
   for (const player of players) {
     if (player.mineResources.length === 0) continue;
 
-    const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
-    const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
-    let amount = isBoosted ? 1.5 : 1;
-
-    // Apply mining right multiplier
-    const rights = market.miningRights[resourceId];
-    if (rights && rights.length > 0) {
-      amount *= rights.some(r => r.holderId === player.id)
-        ? MINING_RIGHT_HOLDER_MULTIPLIER
-        : MINING_RIGHT_OTHER_MULTIPLIER;
+    // Initialize timestamp if not set (also handles old saves without this field)
+    if (!player.nextMineProductionAt) {
+      const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
+      player.nextMineProductionAt = now + getMiningInterval(player, resourceId);
+      continue;
     }
 
-    player.resources[resourceId] = (player.resources[resourceId] ?? 0) + amount;
+    // Produce resources as long as we've passed the deadline
+    // (loop handles case where interval is shorter than sub-tick)
+    let produced = 0;
+    const maxPerTick = 5; // safety cap to prevent runaway loops
+    while (now >= player.nextMineProductionAt && produced < maxPerTick) {
+      const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
+      player.resources[resourceId] = (player.resources[resourceId] ?? 0) + 1;
+      player.mineResourceIndex = (player.mineResourceIndex + 1) % player.mineResources.length;
 
-    // Advance to next resource in rotation
-    player.mineResourceIndex = (player.mineResourceIndex + 1) % player.mineResources.length;
+      // Schedule next production based on the NEW resource (which may have different rights)
+      const nextResourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
+      const interval = getMiningInterval(player, nextResourceId);
+      player.nextMineProductionAt += interval;
+      produced++;
+    }
+
+    // If timestamp fell too far behind (e.g. game was paused), reset it
+    if (player.nextMineProductionAt < now - MINE_BASE_INTERVAL_MS * 2) {
+      const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
+      player.nextMineProductionAt = now + getMiningInterval(player, resourceId);
+    }
   }
 }
+
+// --- Manufacturing ---
 
 export function tryStartJob(player: Player, speed: number): boolean {
   if (player.manufacturingQueue.length === 0) return false;
@@ -116,34 +156,32 @@ function completeJob(player: Player, speed: number): void {
 }
 
 function processManufacturing(players: Player[]): void {
-  const tickMs = TICK_SECONDS * 1000;
   const config = gameState.getConfig();
   const speed = config?.gameSpeed ?? 1.0;
 
   for (const player of players) {
     if (player.manufacturingQueue.length === 0) continue;
 
-    // Try to start a new job if the front of the queue hasn't started yet
     const front = player.manufacturingQueue[0];
     if (!front.resourcesConsumed) {
       tryStartJob(player, speed);
-      // Job just started — don't subtract time yet so client sees 0%
       continue;
     }
 
     if (front.completed) continue;
 
-    front.remainingMs -= tickMs;
+    // Manufacturing still uses the economy tick interval (10s)
+    front.remainingMs -= ECONOMY_TICK_INTERVAL * SUB_TICK_MS;
 
     if (front.remainingMs <= 0) {
       front.completed = true;
       completeJob(player, speed);
-
-      // Immediately start the next job in the same tick
       tryStartJob(player, speed);
     }
   }
 }
+
+// --- Market ---
 
 function processMarketConsumption(): void {
   const config = gameState.getConfig()!;
@@ -151,13 +189,11 @@ function processMarketConsumption(): void {
   const market = gameState.getMarket();
   const timeMultiplier = 1 + tick * 0.001;
 
-  // Resource consumption
   for (const entry of Object.values(market.resources)) {
     const consumption = entry.baseConsumptionRate * config.consumptionRate * timeMultiplier;
     entry.supply = Math.max(0, entry.supply - consumption);
   }
 
-  // Consumable consumption
   for (const entry of Object.values(market.consumables)) {
     if (entry.baseConsumptionRate > 0) {
       const consumption = entry.baseConsumptionRate * config.consumptionRate * timeMultiplier;
@@ -170,14 +206,12 @@ function processPriceAdjustment(): void {
   const market = gameState.getMarket();
   const recipes = gameState.getRecipes();
 
-  // Resource prices
   for (const entry of Object.values(market.resources)) {
-    const basePrice = 5; // RESOURCE_BASE_PRICE
+    const basePrice = 5;
     const newPrice = basePrice * (RESOURCE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
     entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
   }
 
-  // Consumable prices
   for (const recipe of recipes) {
     const basePrice = BASE_PRICES[recipe.tier];
     const entry = market.consumables[recipe.id];
@@ -188,28 +222,30 @@ function processPriceAdjustment(): void {
   }
 }
 
+// --- Main Tick ---
+
 function processTick(): void {
   const players = gameState.getAllPlayers();
 
-  // 1. Mining
+  // Mining runs every sub-tick (2s) for responsive production
   processMining(players);
 
-  // 2. Manufacturing
-  processManufacturing(players);
+  // Economy systems run every ECONOMY_TICK_INTERVAL sub-ticks (10s)
+  const isEconomyTick = subTickCount % ECONOMY_TICK_INTERVAL === 0;
+  if (isEconomyTick) {
+    processManufacturing(players);
+    processMarketConsumption();
+    processPriceAdjustment();
+    gameState.incrementTick();
+  }
 
-  // 3. Market consumption
-  processMarketConsumption();
+  subTickCount++;
 
-  // 4. Price adjustment
-  processPriceAdjustment();
-
-  // 5. Update players in state & increment tick
+  // Save players & broadcast every sub-tick
   for (const player of players) {
     gameState.setPlayer(player.id, player);
   }
-  gameState.incrementTick();
 
-  // 6. Broadcast
   broadcast({
     type: WSMessageType.GAME_STATE_UPDATE,
     payload: gameState.toJSON(),
@@ -218,13 +254,10 @@ function processTick(): void {
 
 export function startGameLoop(): void {
   stopGameLoop();
+  subTickCount = 0;
 
-  const config = gameState.getConfig();
-  const speed = config?.gameSpeed ?? 1.0;
-  const intervalMs = TICK_BASE_MS / Math.max(speed, 0.1);
-
-  loopTimer = setInterval(processTick, intervalMs);
-  console.log(`[GameLoop] Started (interval: ${intervalMs}ms, speed: ${speed}x)`);
+  loopTimer = setInterval(processTick, SUB_TICK_MS);
+  console.log(`[GameLoop] Started (sub-tick: ${SUB_TICK_MS}ms, economy every ${ECONOMY_TICK_INTERVAL * SUB_TICK_MS}ms)`);
 }
 
 export function stopGameLoop(): void {

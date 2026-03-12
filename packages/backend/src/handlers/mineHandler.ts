@@ -19,6 +19,7 @@ function createDefaultPlayer(name: string): Player {
     mineResourceIndex: 0,
     mineBoostUntil: null,
     mineBoostCooldownUntil: null,
+    nextMineProductionAt: 0,
     manufacturingQueue: [],
     labHistory: [],
   };
@@ -70,6 +71,7 @@ export function handleChangeMineResource(payload: { playerId: string; resourceId
     ...player,
     mineResources: resourceIds,
     mineResourceIndex: 0,
+    nextMineProductionAt: 0,
   });
   broadcastGameState();
 }

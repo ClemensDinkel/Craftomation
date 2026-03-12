@@ -54,6 +54,7 @@ export interface Player {
   mineResourceIndex: number;            // index into mineResources for next production
   mineBoostUntil: number | null;       // timestamp when boost expires
   mineBoostCooldownUntil: number | null; // timestamp when cooldown expires
+  nextMineProductionAt: number;        // timestamp when next resource is produced
   manufacturingQueue: ManufacturingJob[];
   labHistory: LabExperimentEntry[];
 }
