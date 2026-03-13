@@ -259,11 +259,11 @@ class GameStateManager {
       }
     }
 
-    // Migrate players: add productionGoods if missing
+    // Migrate players: add missing fields
     this.players = new Map(
       Object.entries(state.players).map(([id, p]) => [
         id,
-        { ...p, productionGoods: p.productionGoods ?? {} },
+        { ...p, productionGoods: p.productionGoods ?? {}, autoTradeRules: p.autoTradeRules ?? [] },
       ]),
     );
   }

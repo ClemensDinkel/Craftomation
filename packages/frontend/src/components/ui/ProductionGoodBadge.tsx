@@ -19,6 +19,7 @@ export function formatBonusText(bonusType: string, bonusValue: number): string {
     case 'sabotage': return `Sabotage +${bonusValue}%`;
     case 'sabotage_defense': return 'Sabotage Defense';
     case 'patent_office': return `Patent -${bonusValue}%`;
+    case 'auto_trade': return 'Auto-Trade';
     default: return bonusType;
   }
 }

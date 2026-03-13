@@ -164,6 +164,7 @@ export const de: Record<string, string> = {
   'item.nano_forge': 'Nanoschmiede',
   'item.false_retina': 'Falsche Retina',
   'item.android': 'Androide',
+  'item.trade_bot': 'Handelsautomat',
 
   // Production Good Descriptions
   'itemDesc.pickaxe': '+1 Mining-Ertrag pro Tick',
@@ -189,6 +190,7 @@ export const de: Record<string, string> = {
   'itemDesc.nano_forge': '-60% Fertigungszeit, spart 1 Rohstoff',
   'itemDesc.false_retina': 'Sabotage +100% Erfolgsrate',
   'itemDesc.android': 'Patente -25% günstiger',
+  'itemDesc.trade_bot': 'Automatischer Kauf/Verkauf bei Schwellwert',
 
   // Production Good UI
   'productionGood.active': 'Aktiv',
@@ -201,6 +203,16 @@ export const de: Record<string, string> = {
   'productionGood.distinctCount': 'verschiedene Rohstoffe',
   'productionGood.notInRecipe': 'Nicht im Rezept',
   'auction.tabProductionGoods': 'Produktionsmittel',
+  'auction.tabAutoTrade': 'Auto',
+  'auction.autoTradeInfo': 'Der Handelsautomat kauft/verkauft automatisch 1 Einheit pro Tick wenn der Schwellwert erreicht ist.',
+  'auction.noAutoTrade': 'Kein Handelsautomat aktiv. Benötigt Produktionsmittel "Handelsautomat".',
+  'auction.addRule': 'Regel hinzufügen',
+  'auction.buyBelow': 'Kaufen unter',
+  'auction.sellAbove': 'Verkaufen über',
+  'auction.noRules': 'Keine Auto-Trade Regeln konfiguriert',
+  'auction.item': 'Gegenstand',
+  'auction.ruleType': 'Typ',
+  'auction.threshold': 'Schwellwert',
   'manufacturing.productionGoods': 'Produktionsmittel',
 
   // Common

@@ -29,4 +29,5 @@ export const PRODUCTION_GOOD_DEFINITIONS: ProductionGoodDefinition[] = [
   { id: 'nano_forge',    tier: 4, bonusType: 'craft_speed',        bonusValue: 60, module: 'manufacturing', wearUses: 60 },
   { id: 'false_retina',  tier: 4, bonusType: 'sabotage',           bonusValue: 100, module: 'backroom',     wearUses: 60 },
   { id: 'android',       tier: 4, bonusType: 'patent_office',      bonusValue: 25, module: 'patent_office', wearUses: 60 },
+  { id: 'trade_bot',     tier: 4, bonusType: 'auto_trade',         bonusValue: 1,  module: 'auction',       wearUses: 60 },
 ];

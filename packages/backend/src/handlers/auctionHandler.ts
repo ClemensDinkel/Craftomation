@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
-import { MarketEntry, WSMessageType } from '@craftomation/shared';
+import { MarketEntry, WSMessageType, type AutoTradeRule } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast, sendTo } from '../websocket/wsServer';
-import { activateProductionGood, getDefinition } from '../game/productionGoodUtils';
+import { activateProductionGood, getDefinition, getActiveBonus } from '../game/productionGoodUtils';
 
 const RESOURCE_REFERENCE_SUPPLY = 100;
 const CONSUMABLE_REFERENCE_SUPPLY = 15;
@@ -388,5 +388,61 @@ export function handleBuyMiningRight(
   market.miningRights[resourceId] = rights;
   gameState.setPlayer(playerId, player);
   gameState.setMarket(market);
+  broadcastGameState();
+}
+
+export function handleSetAutoTradeRule(
+  clientId: string,
+  payload: { playerId: string; rule: Omit<AutoTradeRule, 'id'> & { id?: string } },
+): void {
+  const { playerId, rule } = payload;
+  const player = gameState.getPlayer(playerId);
+  if (!player) return;
+
+  // Require active auto_trade production good
+  if (getActiveBonus(player, 'auto_trade') <= 0) {
+    sendError(clientId, 'No Trade Bot active');
+    return;
+  }
+
+  if (!player.autoTradeRules) player.autoTradeRules = [];
+
+  if (rule.id) {
+    // Update existing rule
+    const idx = player.autoTradeRules.findIndex(r => r.id === rule.id);
+    if (idx !== -1) {
+      player.autoTradeRules[idx] = { ...rule, id: rule.id } as AutoTradeRule;
+    }
+  } else {
+    // Add new rule (max 10 rules)
+    if (player.autoTradeRules.length >= 10) {
+      sendError(clientId, 'Max 10 rules');
+      return;
+    }
+    player.autoTradeRules.push({
+      id: uuidv4(),
+      itemId: rule.itemId,
+      itemType: rule.itemType,
+      buyBelowPrice: rule.buyBelowPrice,
+      sellAbovePrice: rule.sellAbovePrice,
+    });
+  }
+
+  gameState.setPlayer(playerId, player);
+  broadcastGameState();
+}
+
+export function handleRemoveAutoTradeRule(
+  clientId: string,
+  payload: { playerId: string; ruleId: string },
+): void {
+  const { playerId, ruleId } = payload;
+  const player = gameState.getPlayer(playerId);
+  if (!player) return;
+
+  if (!player.autoTradeRules) return;
+  player.autoTradeRules = player.autoTradeRules.filter(r => r.id !== ruleId);
+
+  gameState.setPlayer(playerId, player);
   broadcastGameState();
 }

@@ -58,6 +58,15 @@ export interface Player {
   nextMineProductionAt: number;        // timestamp when next resource is produced
   manufacturingQueue: ManufacturingJob[];
   labHistory: LabExperimentEntry[];
+  autoTradeRules: AutoTradeRule[];
+}
+
+export interface AutoTradeRule {
+  id: string;
+  itemId: string;
+  itemType: 'resource' | 'consumable';
+  buyBelowPrice?: number;   // auto-buy when market price <= this
+  sellAbovePrice?: number;  // auto-sell when market price >= this
 }
 
 // ==========================================
@@ -130,7 +139,8 @@ export type ProductionGoodBonusType =
   | 'market_info'
   | 'sabotage'
   | 'sabotage_defense'
-  | 'patent_office';
+  | 'patent_office'
+  | 'auto_trade';
 
 export interface ProductionGoodDefinition {
   id: string;
@@ -216,6 +226,8 @@ export enum WSMessageType {
   BUY_RECIPE = 'BUY_RECIPE',
   BUY_MINING_RIGHT = 'BUY_MINING_RIGHT',
   DEBUG_UNLOCK_RECIPE = 'DEBUG_UNLOCK_RECIPE',
+  SET_AUTO_TRADE_RULE = 'SET_AUTO_TRADE_RULE',
+  REMOVE_AUTO_TRADE_RULE = 'REMOVE_AUTO_TRADE_RULE',
 
   // Server -> Client
   GAME_STATE_UPDATE = 'GAME_STATE_UPDATE',

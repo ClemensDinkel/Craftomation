@@ -23,6 +23,7 @@ function createDefaultPlayer(name: string): Player {
     nextMineProductionAt: 0,
     manufacturingQueue: [],
     labHistory: [],
+    autoTradeRules: [],
   };
 }
 

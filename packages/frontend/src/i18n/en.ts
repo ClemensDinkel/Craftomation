@@ -164,6 +164,7 @@ export const en: Record<string, string> = {
   'item.nano_forge': 'Nano Forge',
   'item.false_retina': 'False Retina',
   'item.android': 'Android',
+  'item.trade_bot': 'Trade Bot',
 
   // Production Good Descriptions
   'itemDesc.pickaxe': '+1 mining yield per tick',
@@ -189,6 +190,7 @@ export const en: Record<string, string> = {
   'itemDesc.nano_forge': '-60% crafting time, saves 1 resource',
   'itemDesc.false_retina': 'Sabotage +100% success rate',
   'itemDesc.android': 'Patents -25% cheaper',
+  'itemDesc.trade_bot': 'Auto buy/sell at price threshold',
 
   // Production Good UI
   'productionGood.active': 'Active',
@@ -201,6 +203,16 @@ export const en: Record<string, string> = {
   'productionGood.distinctCount': 'distinct resources',
   'productionGood.notInRecipe': 'Not in recipe',
   'auction.tabProductionGoods': 'Production Goods',
+  'auction.tabAutoTrade': 'Auto',
+  'auction.autoTradeInfo': 'The Trade Bot auto buys/sells 1 unit per tick when the threshold is reached.',
+  'auction.noAutoTrade': 'No Trade Bot active. Requires "Trade Bot" production good.',
+  'auction.addRule': 'Add Rule',
+  'auction.buyBelow': 'Buy below',
+  'auction.sellAbove': 'Sell above',
+  'auction.noRules': 'No auto-trade rules configured',
+  'auction.item': 'Item',
+  'auction.ruleType': 'Type',
+  'auction.threshold': 'Threshold',
   'manufacturing.productionGoods': 'Production Goods',
 
   // Common

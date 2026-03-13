@@ -328,6 +328,68 @@ function processPriceAdjustment(): void {
   }
 }
 
+// --- Auto-Trade ---
+
+function processAutoTrade(players: Player[]): void {
+  const market = gameState.getMarket();
+  let marketChanged = false;
+
+  for (const player of players) {
+    if (!player.autoTradeRules || player.autoTradeRules.length === 0) continue;
+    if (getActiveBonus(player, 'auto_trade') <= 0) continue;
+
+    for (const rule of player.autoTradeRules) {
+      const entries = rule.itemType === 'resource' ? market.resources : market.consumables;
+      const entry = entries[rule.itemId];
+      if (!entry) continue;
+
+      const inventory = rule.itemType === 'resource' ? player.resources : player.consumables;
+
+      // Auto-buy: price <= threshold, have supply, have cash
+      if (rule.buyBelowPrice !== undefined && entry.price <= rule.buyBelowPrice) {
+        if (Math.floor(entry.supply) >= 1) {
+          const cost = Math.round(entry.price * (1 + 0.025) * 100) / 100;
+          if (player.cash >= cost) {
+            player.cash = Math.round((player.cash - cost) * 100) / 100;
+            inventory[rule.itemId] = (inventory[rule.itemId] ?? 0) + 1;
+            entry.supply = Math.max(0, entry.supply - 1);
+            // Recalc price
+            const isRes = rule.itemType === 'resource';
+            const basePrice = isRes ? 5 : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
+            const refSupply = isRes ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
+            const ratio = refSupply / Math.max(Math.floor(entry.supply), 1);
+            entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(basePrice * ratio * 100) / 100));
+            marketChanged = true;
+            applyWear(player, 'auto_trade');
+          }
+        }
+      }
+
+      // Auto-sell: price >= threshold, have inventory
+      if (rule.sellAbovePrice !== undefined && entry.price >= rule.sellAbovePrice) {
+        const owned = Math.floor(inventory[rule.itemId] ?? 0);
+        if (owned >= 1) {
+          entry.supply += 1;
+          const isRes = rule.itemType === 'resource';
+          const basePrice = isRes ? 5 : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
+          const refSupply = isRes ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
+          const ratio = refSupply / Math.max(Math.floor(entry.supply), 1);
+          entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(basePrice * ratio * 100) / 100));
+          const revenue = Math.round(entry.price * (1 - 0.025) * 100) / 100;
+          player.cash = Math.round((player.cash + revenue) * 100) / 100;
+          inventory[rule.itemId] = (inventory[rule.itemId] ?? 0) - 1;
+          marketChanged = true;
+          applyWear(player, 'auto_trade');
+        }
+      }
+    }
+  }
+
+  if (marketChanged) {
+    gameState.setMarket(market);
+  }
+}
+
 // Production good wear is now per-usage — see applyWear() calls in mining/manufacturing/lab
 
 // --- Main Tick ---
@@ -342,6 +404,7 @@ function processTick(): void {
   const isEconomyTick = subTickCount % ECONOMY_TICK_INTERVAL === 0;
   if (isEconomyTick) {
     processManufacturing(players);
+    processAutoTrade(players);
     processMarketConsumption();
     processPriceAdjustment();
     gameState.incrementTick();

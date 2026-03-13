@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
-import type { Player, Resource, Recipe, MarketState, WSMessage, ProductionGoodDefinition } from '@craftomation/shared';
+import type { Player, Resource, Recipe, MarketState, WSMessage, ProductionGoodDefinition, AutoTradeRule } from '@craftomation/shared';
 import { Button, Input, Dialog, Select } from '@/components/ui';
 import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
 
@@ -15,7 +15,7 @@ interface Props {
   onBack: () => void;
 }
 
-type Tab = 'goods' | 'recipes' | 'rights' | 'pgGoods';
+type Tab = 'goods' | 'recipes' | 'rights' | 'pgGoods' | 'autoTrade';
 
 export function PlayerAuctionView({ player, players, resources, recipes, market, send, onBack }: Props) {
   const { t } = useLocale();
@@ -41,6 +41,14 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
 
   const handleBuyMiningRight = (resourceId: string) => {
     send({ type: WSMessageType.BUY_MINING_RIGHT, payload: { playerId: player.id, resourceId } });
+  };
+
+  const handleSetAutoTradeRule = (rule: Omit<AutoTradeRule, 'id'> & { id?: string }) => {
+    send({ type: WSMessageType.SET_AUTO_TRADE_RULE, payload: { playerId: player.id, rule } });
+  };
+
+  const handleRemoveAutoTradeRule = (ruleId: string) => {
+    send({ type: WSMessageType.REMOVE_AUTO_TRADE_RULE, payload: { playerId: player.id, ruleId } });
   };
 
   const handleBuyRecipe = (listingId: string) => {
@@ -115,6 +123,14 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           >
             {t('auction.tabRights')}
           </button>
+          <button
+            onClick={() => setTab('autoTrade')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              tab === 'autoTrade' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            {t('auction.tabAutoTrade')}
+          </button>
         </div>
       </div>
 
@@ -148,6 +164,18 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           playerMap={playerMap}
           maxSlots={Math.max(1, Math.floor(players.length / 10))}
           onBuyRight={handleBuyMiningRight}
+        />
+      )}
+
+      {tab === 'autoTrade' && market && (
+        <AutoTradeTab
+          player={player}
+          resources={resources}
+          recipes={recipes}
+          market={market}
+          pgDefs={pgDefs}
+          onSetRule={handleSetAutoTradeRule}
+          onRemoveRule={handleRemoveAutoTradeRule}
         />
       )}
 
@@ -687,6 +715,208 @@ function ProductionGoodsTab({ player, market, pgDefs, onBuy, onSell }: {
           })}
         </>
       )}
+    </div>
+  );
+}
+
+// === Auto-Trade Tab ===
+
+function AutoTradeTab({ player, resources, recipes, market, pgDefs, onSetRule, onRemoveRule }: {
+  player: Player;
+  resources: Resource[];
+  recipes: Recipe[];
+  market: MarketState;
+  pgDefs: Map<string, ProductionGoodDefinition>;
+  onSetRule: (rule: Omit<AutoTradeRule, 'id'> & { id?: string }) => void;
+  onRemoveRule: (ruleId: string) => void;
+}) {
+  const { t } = useLocale();
+  const hasAutoTrade = getActiveBonus(player, 'auto_trade', pgDefs) > 0;
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [ruleItemId, setRuleItemId] = useState('');
+  const [ruleItemType, setRuleItemType] = useState<'resource' | 'consumable'>('resource');
+  const [ruleAction, setRuleAction] = useState<'buy' | 'sell'>('buy');
+  const [ruleThreshold, setRuleThreshold] = useState('');
+
+  const rules = player.autoTradeRules ?? [];
+
+  // Build item options
+  const resourceOptions = resources.map(r => ({ value: r.id, label: r.name, type: 'resource' as const }));
+  const consumableOptions = recipes
+    .filter(r => r.type === 'consumable' && market.consumables[r.id])
+    .map(r => ({ value: r.id, label: t(`item.${r.id}`), type: 'consumable' as const }));
+
+  const handleAddRule = () => {
+    if (!ruleItemId || !ruleThreshold) return;
+    const threshold = parseFloat(ruleThreshold);
+    if (isNaN(threshold) || threshold <= 0) return;
+
+    onSetRule({
+      itemId: ruleItemId,
+      itemType: ruleItemType,
+      buyBelowPrice: ruleAction === 'buy' ? threshold : undefined,
+      sellAbovePrice: ruleAction === 'sell' ? threshold : undefined,
+    });
+    setAddDialogOpen(false);
+    setRuleThreshold('');
+  };
+
+  const getItemLabel = (rule: AutoTradeRule) => {
+    if (rule.itemType === 'resource') {
+      const res = resources.find(r => r.id === rule.itemId);
+      return res?.name ?? rule.itemId;
+    }
+    return t(`item.${rule.itemId}`);
+  };
+
+  const getCurrentPrice = (rule: AutoTradeRule) => {
+    const entries = rule.itemType === 'resource' ? market.resources : market.consumables;
+    return entries[rule.itemId]?.price ?? 0;
+  };
+
+  if (!hasAutoTrade) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500 text-sm">{t('auction.noAutoTrade')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 overflow-y-auto">
+      <p className="text-xs text-gray-500">{t('auction.autoTradeInfo')}</p>
+
+      {/* Existing rules */}
+      {rules.length === 0 ? (
+        <p className="text-gray-600 text-sm text-center py-4">{t('auction.noRules')}</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rules.map(rule => {
+            const isBuy = rule.buyBelowPrice !== undefined;
+            const threshold = isBuy ? rule.buyBelowPrice! : rule.sellAbovePrice!;
+            const currentPrice = getCurrentPrice(rule);
+            const isActive = isBuy ? currentPrice <= threshold : currentPrice >= threshold;
+
+            return (
+              <div
+                key={rule.id}
+                className={`rounded-lg border px-3 py-2 ${
+                  isActive ? 'border-green-700/50 bg-green-900/20' : 'border-gray-700/50 bg-gray-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                    isBuy ? 'bg-green-800 text-green-300' : 'bg-red-800 text-red-300'
+                  }`}>
+                    {isBuy ? t('auction.buyBelow') : t('auction.sellAbove')}
+                  </span>
+                  <span className="text-white text-sm flex-1 truncate">{getItemLabel(rule)}</span>
+                  <span className="text-xs text-gray-400 font-mono">${currentPrice.toFixed(1)}</span>
+                  <span className="text-xs text-green-400 font-mono font-bold">${threshold}</span>
+                  <button
+                    onClick={() => onRemoveRule(rule.id)}
+                    className="text-gray-500 hover:text-red-400 text-sm transition-colors px-1"
+                  >
+                    &times;
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add rule button */}
+      <Button size="sm" onClick={() => {
+        if (resourceOptions.length > 0) {
+          setRuleItemId(resourceOptions[0].value);
+          setRuleItemType('resource');
+        }
+        setAddDialogOpen(true);
+      }}>
+        {t('auction.addRule')}
+      </Button>
+
+      {/* Add rule dialog */}
+      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} title={t('auction.addRule')}>
+        <div className="flex flex-col gap-3">
+          {/* Item type */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setRuleItemType('resource');
+                if (resourceOptions.length > 0) setRuleItemId(resourceOptions[0].value);
+              }}
+              className={`flex-1 py-1.5 text-sm rounded-lg ${
+                ruleItemType === 'resource' ? 'bg-gray-700 text-white' : 'text-gray-400'
+              }`}
+            >
+              {t('auction.resources')}
+            </button>
+            <button
+              onClick={() => {
+                setRuleItemType('consumable');
+                if (consumableOptions.length > 0) setRuleItemId(consumableOptions[0].value);
+              }}
+              className={`flex-1 py-1.5 text-sm rounded-lg ${
+                ruleItemType === 'consumable' ? 'bg-gray-700 text-white' : 'text-gray-400'
+              }`}
+            >
+              {t('auction.consumables')}
+            </button>
+          </div>
+
+          {/* Item select */}
+          <Select
+            label={t('auction.item')}
+            options={ruleItemType === 'resource' ? resourceOptions : consumableOptions}
+            value={ruleItemId}
+            onChange={e => setRuleItemId(e.target.value)}
+          />
+
+          {/* Buy/Sell */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setRuleAction('buy')}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-lg ${
+                ruleAction === 'buy' ? 'bg-green-800 text-green-300' : 'text-gray-400'
+              }`}
+            >
+              {t('auction.buyBelow')}
+            </button>
+            <button
+              onClick={() => setRuleAction('sell')}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-lg ${
+                ruleAction === 'sell' ? 'bg-red-800 text-red-300' : 'text-gray-400'
+              }`}
+            >
+              {t('auction.sellAbove')}
+            </button>
+          </div>
+
+          {/* Threshold */}
+          <Input
+            type="number"
+            placeholder={t('auction.threshold')}
+            value={ruleThreshold}
+            onChange={e => setRuleThreshold(e.target.value)}
+            min="1"
+          />
+
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setAddDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAddRule}
+              disabled={!ruleItemId || !ruleThreshold || parseFloat(ruleThreshold) <= 0}
+            >
+              {t('auction.addRule')}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

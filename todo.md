@@ -14,10 +14,10 @@ bugs
 - rohstoffe einmal für alles sortieren alphabetisch
 
 features
-- autokauf in fertigung
-- beschreibung für produktionsmittel in ui
-- bei letzte experimente auch anzahl rohstoffe anzeigen
-- idee für high tier auktions item: auto buy / sell bei schwellwert
+- automiatscher resourcenzukauf in fertigung (toogle)
+- kurzbeschreibung der Wirkung von produktionsmittel in ui
+- bei der liste der letzten experimente auch anzahl rohstoffe anzeigen (nicht nur im after-experiment-view)
+- idee für high tier auktions item: auto buy / sell bei einstellbarem schwellwert
 
 offene fragen 
 - preisdiskrepanz, verkaufe 2 in vorrat -> 90, verkaufe 3 -> 60, dann aber 85,x ... (wegen spread ?)
