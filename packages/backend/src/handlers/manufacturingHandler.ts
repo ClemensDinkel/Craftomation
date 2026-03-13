@@ -32,8 +32,9 @@ export function handleAddManufacturingJob(payload: {
   playerId: string;
   recipeId: string;
   repeat: boolean;
+  autoBuy?: boolean;
 }): void {
-  const { playerId, recipeId, repeat } = payload;
+  const { playerId, recipeId, repeat, autoBuy } = payload;
   const player = gameState.getPlayer(playerId);
   if (!player) return;
 
@@ -62,6 +63,7 @@ export function handleAddManufacturingJob(payload: {
     completed: false,
     repeat,
     resourcesConsumed: false,
+    autoBuy: autoBuy ?? false,
   };
 
   const wasEmpty = player.manufacturingQueue.length === 0;

@@ -360,8 +360,13 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
                       );
                     })}
                   </div>
-                  <span className="ml-auto text-xs text-gray-500">
-                    {Math.round(entry.similarity * 100)}%
+                  <span className="ml-auto flex items-center gap-2">
+                    {entry.distinctResourceCount !== undefined && (
+                      <span className="text-xs text-indigo-400">{entry.distinctResourceCount} {t('productionGood.distinctCount')}</span>
+                    )}
+                    <span className="text-xs text-gray-500">
+                      {Math.round(entry.similarity * 100)}%
+                    </span>
                   </span>
                 </div>
                 {entry.match && entry.recipeId && (

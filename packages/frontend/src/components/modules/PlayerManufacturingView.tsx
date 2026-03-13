@@ -19,6 +19,7 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
   const { t } = useLocale();
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
+  const [autoBuy, setAutoBuy] = useState(false);
   const pgDefs = useProductionGoodDefs();
 
   const knownRecipes = useMemo(() => {
@@ -47,7 +48,7 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
   const handleAddJob = (recipeId: string, repeat: boolean) => {
     send({
       type: WSMessageType.ADD_MANUFACTURING_JOB,
-      payload: { playerId: player.id, recipeId, repeat },
+      payload: { playerId: player.id, recipeId, repeat, autoBuy },
     });
   };
 
@@ -114,6 +115,17 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
           </div>
         </Dialog>
       )}
+
+      {/* Auto-Buy Toggle */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setAutoBuy(prev => !prev)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${autoBuy ? 'bg-indigo-600' : 'bg-gray-600'}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoBuy ? 'translate-x-4' : ''}`} />
+        </button>
+        <span className="text-sm text-gray-300">{t('manufacturing.autoBuy')}</span>
+      </div>
 
       {/* Manufacturing Queue */}
       <section>
@@ -218,6 +230,9 @@ function JobRow({ job, isFirst, recipeName, onRemove }: {
           {job.repeat && (
             <span className="text-indigo-400 text-xs font-bold">∞</span>
           )}
+          {job.autoBuy && (
+            <span className="text-green-400 text-xs font-bold" title="Auto-Buy">$</span>
+          )}
           {waiting && (
             <span className="text-amber-400 text-xs">⏳</span>
           )}
@@ -276,6 +291,9 @@ function RecipeRow({ recipe, resourceMap, repeatActive, onAdd, onRepeat }: {
             );
           })}
         </div>
+        {recipe.type === 'production_good' && (
+          <p className="text-[11px] text-gray-500 mt-1">{t(`itemDesc.${recipe.id}`)}</p>
+        )}
       </div>
       <div className="flex gap-1 shrink-0">
         <button

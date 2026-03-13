@@ -106,6 +106,7 @@ export const en: Record<string, string> = {
   'manufacturing.noItems': 'None',
   'manufacturing.addOnce': 'Add once',
   'manufacturing.repeatToggle': 'Toggle repeat',
+  'manufacturing.autoBuy': 'Auto-buy (missing resources from market)',
 
   // Auction Module
   'auction.title': 'Auction Hall',
@@ -163,6 +164,31 @@ export const en: Record<string, string> = {
   'item.nano_forge': 'Nano Forge',
   'item.false_retina': 'False Retina',
   'item.android': 'Android',
+
+  // Production Good Descriptions
+  'itemDesc.pickaxe': '+1 mining yield per tick',
+  'itemDesc.sickle': '+1 plantation yield per tick',
+  'itemDesc.workbench': '-25% crafting time',
+  'itemDesc.notebook': 'Lab: Shows distinct resource count',
+  'itemDesc.market_report': 'Market: Shows extended info',
+  'itemDesc.drill': '+2 mining yield per tick',
+  'itemDesc.greenhouse': '+2 plantation yield per tick',
+  'itemDesc.conveyor': '-40% crafting time',
+  'itemDesc.microscope': 'Lab: Shows direction hints',
+  'itemDesc.price_chart': 'Market: Shows extended info Lv.2',
+  'itemDesc.lockpick_set': 'Sabotage +25% success rate',
+  'itemDesc.excavator': '+3 mining yield per tick',
+  'itemDesc.harvester': '+3 plantation yield per tick',
+  'itemDesc.assembly_line': '-55% crafting time',
+  'itemDesc.spectrometer': 'Lab: Shows excluded resources',
+  'itemDesc.telegraph': 'Market: Shows extended info Lv.3',
+  'itemDesc.vault': 'Sabotage defense',
+  'itemDesc.textbook': 'Patents -25% cheaper',
+  'itemDesc.quantum_drill': '+4 mining yield per tick',
+  'itemDesc.bioreactor': '+4 plantation yield per tick',
+  'itemDesc.nano_forge': '-60% crafting time, saves 1 resource',
+  'itemDesc.false_retina': 'Sabotage +100% success rate',
+  'itemDesc.android': 'Patents -25% cheaper',
 
   // Production Good UI
   'productionGood.active': 'Active',

@@ -106,6 +106,7 @@ export const de: Record<string, string> = {
   'manufacturing.noItems': 'Keine',
   'manufacturing.addOnce': 'Einmal hinzufügen',
   'manufacturing.repeatToggle': 'Dauerproduktion umschalten',
+  'manufacturing.autoBuy': 'Autokauf (fehlende Rohstoffe vom Markt)',
 
   // Auction Module
   'auction.title': 'Auktionshalle',
@@ -163,6 +164,31 @@ export const de: Record<string, string> = {
   'item.nano_forge': 'Nanoschmiede',
   'item.false_retina': 'Falsche Retina',
   'item.android': 'Androide',
+
+  // Production Good Descriptions
+  'itemDesc.pickaxe': '+1 Mining-Ertrag pro Tick',
+  'itemDesc.sickle': '+1 Plantagen-Ertrag pro Tick',
+  'itemDesc.workbench': '-25% Fertigungszeit',
+  'itemDesc.notebook': 'Labor: Zeigt Anzahl verschiedener Rohstoffe',
+  'itemDesc.market_report': 'Markt: Zeigt erweiterte Infos',
+  'itemDesc.drill': '+2 Mining-Ertrag pro Tick',
+  'itemDesc.greenhouse': '+2 Plantagen-Ertrag pro Tick',
+  'itemDesc.conveyor': '-40% Fertigungszeit',
+  'itemDesc.microscope': 'Labor: Zeigt Richtungshinweise',
+  'itemDesc.price_chart': 'Markt: Zeigt erweiterte Infos Lv.2',
+  'itemDesc.lockpick_set': 'Sabotage +25% Erfolgsrate',
+  'itemDesc.excavator': '+3 Mining-Ertrag pro Tick',
+  'itemDesc.harvester': '+3 Plantagen-Ertrag pro Tick',
+  'itemDesc.assembly_line': '-55% Fertigungszeit',
+  'itemDesc.spectrometer': 'Labor: Zeigt ausgeschlossene Rohstoffe',
+  'itemDesc.telegraph': 'Markt: Zeigt erweiterte Infos Lv.3',
+  'itemDesc.vault': 'Schutz vor Sabotage',
+  'itemDesc.textbook': 'Patente -25% günstiger',
+  'itemDesc.quantum_drill': '+4 Mining-Ertrag pro Tick',
+  'itemDesc.bioreactor': '+4 Plantagen-Ertrag pro Tick',
+  'itemDesc.nano_forge': '-60% Fertigungszeit, spart 1 Rohstoff',
+  'itemDesc.false_retina': 'Sabotage +100% Erfolgsrate',
+  'itemDesc.android': 'Patente -25% günstiger',
 
   // Production Good UI
   'productionGood.active': 'Aktiv',

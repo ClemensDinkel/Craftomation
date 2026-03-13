@@ -74,6 +74,7 @@ export interface ManufacturingJob {
   completed: boolean;
   repeat: boolean;        // infinite repeat mode
   resourcesConsumed: boolean; // whether resources have been deducted for this job
+  autoBuy: boolean;       // auto-buy missing resources from market
 }
 
 // ==========================================
@@ -88,6 +89,7 @@ export interface LabExperimentEntry {
   similarity: number;
   match: boolean;
   recipeId?: string;        // if matched
+  distinctResourceCount?: number; // from Notizbuch bonus
 }
 
 export interface LabResult {

@@ -1,4 +1,4 @@
-import { WSMessageType, type LabColor, type LabResult } from '@craftomation/shared';
+import { WSMessageType, type LabColor, type LabResult, type LabExperimentEntry } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
 import { getActiveBonus, applyWear } from '../game/productionGoodUtils';
@@ -122,16 +122,14 @@ export function handleLabExperiment(
   }
 
   // 6. Save to history
-  player.labHistory.push({
+  const historyEntry: LabExperimentEntry = {
     sequence: [...sequence],
     colorCoding: bestCoding,
     similarity: bestSimilarity,
     match: isMatch,
     recipeId: isMatch ? bestRecipeId ?? undefined : undefined,
-  });
-
-  gameState.setPlayer(playerId, player);
-  broadcastGameState();
+  };
+  player.labHistory.push(historyEntry);
 
   // Build result with production good bonuses
   const result: LabResult = {
@@ -147,9 +145,14 @@ export function handleLabExperiment(
 
   // Notizbuch bonus: show count of distinct resources in target recipe
   if (getActiveBonus(player, 'lab_distinct_count') > 0 && bestRecipe) {
-    result.distinctResourceCount = new Set(bestRecipe.sequence).size;
+    const count = new Set(bestRecipe.sequence).size;
+    result.distinctResourceCount = count;
+    historyEntry.distinctResourceCount = count;
     applyWear(player, 'lab_distinct_count');
   }
+
+  gameState.setPlayer(playerId, player);
+  broadcastGameState();
 
   // Mikroskop bonus: direction hints for yellow results
   if (getActiveBonus(player, 'lab_direction') > 0 && bestRecipe && bestCoding) {

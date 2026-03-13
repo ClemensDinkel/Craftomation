@@ -126,16 +126,65 @@ export function tryStartJob(player: Player, speed: number): boolean {
     cost[resId] = (cost[resId] ?? 0) + 1;
   }
 
-  for (const [resId, needed] of Object.entries(cost)) {
-    if ((player.resources[resId] ?? 0) < needed) return false;
-  }
-
   // Nano Forge special: skip 1 random resource from cost
   const activeItemId = getActiveBonusItemId(player, 'craft_speed');
   if (activeItemId === 'nano_forge' && recipe.sequence.length > 0) {
     const skipIndex = Math.floor(Math.random() * recipe.sequence.length);
     const skippedResId = recipe.sequence[skipIndex];
     cost[skippedResId] = Math.max(0, (cost[skippedResId] ?? 0) - 1);
+  }
+
+  // Check which resources are missing
+  const missing: Record<string, number> = {};
+  for (const [resId, needed] of Object.entries(cost)) {
+    const have = player.resources[resId] ?? 0;
+    if (have < needed) {
+      missing[resId] = needed - Math.floor(have);
+    }
+  }
+
+  // If resources are missing, try auto-buy from market
+  if (Object.keys(missing).length > 0) {
+    if (!job.autoBuy) return false;
+
+    const market = gameState.getMarket();
+    // Pre-check: enough supply and cash for all missing resources
+    let totalAutoBuyCost = 0;
+    const buyPlan: { resId: string; amount: number }[] = [];
+    for (const [resId, amount] of Object.entries(missing)) {
+      const entry = market.resources[resId];
+      if (!entry || Math.floor(entry.supply) < amount) return false; // not enough supply
+      // Estimate cost (unit by unit with price changes)
+      let estimatedCost = 0;
+      let tempSupply = entry.supply;
+      let tempPrice = entry.price;
+      for (let i = 0; i < amount; i++) {
+        estimatedCost += Math.round(tempPrice * (1 + 0.025) * 100) / 100;
+        tempSupply = Math.max(0, tempSupply - 1);
+        const ratio = RESOURCE_REFERENCE_SUPPLY / Math.max(Math.floor(tempSupply), 1);
+        tempPrice = Math.min(5 * 10, Math.max(1, Math.round(5 * ratio * 100) / 100));
+      }
+      totalAutoBuyCost += estimatedCost;
+      buyPlan.push({ resId, amount });
+    }
+
+    if (player.cash < totalAutoBuyCost) return false; // not enough cash
+
+    // Execute auto-buy
+    let actualTotalCost = 0;
+    for (const { resId, amount } of buyPlan) {
+      const entry = market.resources[resId];
+      for (let i = 0; i < amount; i++) {
+        actualTotalCost += Math.round(entry.price * (1 + 0.025) * 100) / 100;
+        entry.supply = Math.max(0, entry.supply - 1);
+        const ratio = RESOURCE_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1);
+        entry.price = Math.min(5 * 10, Math.max(1, Math.round(5 * ratio * 100) / 100));
+      }
+      player.resources[resId] = (player.resources[resId] ?? 0) + amount;
+    }
+    actualTotalCost = Math.round(actualTotalCost * 100) / 100;
+    player.cash = Math.round((player.cash - actualTotalCost) * 100) / 100;
+    gameState.setMarket(market);
   }
 
   for (const [resId, needed] of Object.entries(cost)) {
@@ -174,6 +223,7 @@ function completeJob(player: Player, speed: number): void {
 
   const isRepeat = job.repeat;
   const recipeId = job.recipeId;
+  const wasAutoBuy = job.autoBuy;
   player.manufacturingQueue.shift();
 
   if (isRepeat) {
@@ -196,6 +246,7 @@ function completeJob(player: Player, speed: number): void {
         completed: false,
         repeat: true,
         resourcesConsumed: false,
+        autoBuy: wasAutoBuy,
       });
     }
   }
