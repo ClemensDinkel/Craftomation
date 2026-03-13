@@ -136,12 +136,12 @@ export interface ProductionGoodDefinition {
   bonusType: ProductionGoodBonusType;
   bonusValue: number;
   module: string;
-  wearDurationMs: number;
+  wearUses: number;       // total number of uses before breaking
 }
 
 export interface ActiveProductionGood {
   itemId: string;
-  wearRemainingMs: number;
+  wearRemaining: number;  // uses remaining before breaking
   isUsed: boolean;        // true = activated at some point, no longer tradeable
 }
 

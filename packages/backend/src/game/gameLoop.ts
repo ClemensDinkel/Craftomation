@@ -1,7 +1,7 @@
 import { Player, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
-import { getActiveBonus, getActiveBonusItemId, activateProductionGood, tickWear } from './productionGoodUtils';
+import { getActiveBonus, getActiveBonusItemId, activateProductionGood, applyWear } from './productionGoodUtils';
 
 const SUB_TICK_MS = 2_000;        // fast tick: every 2 seconds
 const ECONOMY_TICK_INTERVAL = 5;  // economy runs every 5 sub-ticks = 10 seconds
@@ -89,6 +89,9 @@ function processMining(players: Player[]): void {
       player.resources[resourceId] = (player.resources[resourceId] ?? 0) + baseProduction;
       player.mineResourceIndex = (player.mineResourceIndex + 1) % player.mineResources.length;
 
+      // Apply wear to mining tool
+      if (miningBoost > 0) applyWear(player, 'mining_boost');
+
       // Schedule next production based on the NEW resource (which may have different rights)
       const nextResourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
       const interval = getMiningInterval(player, nextResourceId);
@@ -156,7 +159,7 @@ function completeJob(player: Player, speed: number): void {
         }
         player.productionGoods[recipe.id].push({
           itemId: recipe.id,
-          wearRemainingMs: def.wearDurationMs,
+          wearRemaining: def.wearUses,
           isUsed: false,
         });
         activateProductionGood(player, recipe.id);
@@ -165,6 +168,9 @@ function completeJob(player: Player, speed: number): void {
       player.consumables[recipe.id] = (player.consumables[recipe.id] ?? 0) + 1;
     }
   }
+
+  // Apply wear to crafting tool on job completion
+  if (getActiveBonus(player, 'craft_speed') > 0) applyWear(player, 'craft_speed');
 
   const isRepeat = job.repeat;
   const recipeId = job.recipeId;
@@ -263,24 +269,15 @@ function processPriceAdjustment(): void {
       const basePrice = PRODUCTION_GOOD_BASE_PRICES[recipe.tier];
       const entry = market.productionGoods[recipe.id];
       if (!entry) continue;
-      const newPrice = basePrice * (PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+      // sqrt curve for production goods: flatter price scaling
+      const ratio = PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(entry.supply, 1);
+      const newPrice = basePrice * Math.sqrt(ratio);
       entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
     }
   }
 }
 
-// --- Production Good Wear ---
-
-function processProductionGoodWear(players: Player[]): void {
-  const config = gameState.getConfig();
-  const speed = config?.gameSpeed ?? 1.0;
-  // Wear elapsed per economy tick, scaled by gameSpeed
-  const elapsedMs = ECONOMY_TICK_INTERVAL * SUB_TICK_MS * speed;
-
-  for (const player of players) {
-    tickWear(player, elapsedMs);
-  }
-}
+// Production good wear is now per-usage — see applyWear() calls in mining/manufacturing/lab
 
 // --- Main Tick ---
 
@@ -294,7 +291,6 @@ function processTick(): void {
   const isEconomyTick = subTickCount % ECONOMY_TICK_INTERVAL === 0;
   if (isEconomyTick) {
     processManufacturing(players);
-    processProductionGoodWear(players);
     processMarketConsumption();
     processPriceAdjustment();
     gameState.incrementTick();

@@ -1,7 +1,7 @@
 import { WSMessageType, type LabColor, type LabResult } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
-import { getActiveBonus } from '../game/productionGoodUtils';
+import { getActiveBonus, applyWear } from '../game/productionGoodUtils';
 
 function broadcastGameState(): void {
   broadcast({
@@ -148,6 +148,7 @@ export function handleLabExperiment(
   // Notizbuch bonus: show count of distinct resources in target recipe
   if (getActiveBonus(player, 'lab_distinct_count') > 0 && bestRecipe) {
     result.distinctResourceCount = new Set(bestRecipe.sequence).size;
+    applyWear(player, 'lab_distinct_count');
   }
 
   // Mikroskop bonus: direction hints for yellow results
@@ -159,6 +160,7 @@ export function handleLabExperiment(
       if (targetIdx === -1) return null;
       return targetIdx < i ? 'left' : 'right';
     });
+    applyWear(player, 'lab_direction');
   }
 
   // Spektrometer bonus: show which resources are NOT in the target recipe
@@ -166,6 +168,7 @@ export function handleLabExperiment(
     const targetSet = new Set(bestRecipe.sequence);
     const allResources = gameState.getResources().map(r => r.id);
     result.excludedResources = allResources.filter(id => !targetSet.has(id));
+    applyWear(player, 'lab_exclusion');
   }
 
   return result;

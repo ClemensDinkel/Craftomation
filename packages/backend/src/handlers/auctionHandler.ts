@@ -28,8 +28,10 @@ function sendError(clientId: string, message: string): void {
 const SPREAD = 0.025; // 2.5% bid/ask spread
 
 /** Recalculate price for a market entry after supply changed. */
-function recalcPrice(entry: MarketEntry, basePrice: number, refSupply: number, maxMultiplier: number = 10): void {
-  const raw = basePrice * (refSupply / Math.max(entry.supply, 1));
+function recalcPrice(entry: MarketEntry, basePrice: number, refSupply: number, maxMultiplier: number = 10, useSqrt: boolean = false): void {
+  const ratio = refSupply / Math.max(entry.supply, 1);
+  // sqrt curve for production goods: flatter price scaling (±~8 per unit instead of ±30)
+  const raw = useSqrt ? basePrice * Math.sqrt(ratio) : basePrice * ratio;
   entry.price = Math.min(basePrice * maxMultiplier, Math.max(1, Math.round(raw * 100) / 100));
 }
 
@@ -84,20 +86,21 @@ export function handleMarketBuy(
     : itemType === 'production_good'
       ? PRODUCTION_GOOD_REFERENCE_SUPPLY
       : CONSUMABLE_REFERENCE_SUPPLY;
+  const isPg = itemType === 'production_good';
 
   // Calculate total cost unit by unit with price recalc (buy at ask price)
   let totalCost = 0;
   for (let i = 0; i < actualAmount; i++) {
     totalCost += buyPrice(entry.price);
     entry.supply = Math.max(0, entry.supply - 1);
-    recalcPrice(entry, basePrice, refSupply);
+    recalcPrice(entry, basePrice, refSupply, 10, isPg);
   }
   totalCost = Math.round(totalCost * 100) / 100;
 
   if (player.cash < totalCost) {
     // Rollback supply change
     entry.supply += actualAmount;
-    recalcPrice(entry, basePrice, refSupply);
+    recalcPrice(entry, basePrice, refSupply, 10, isPg);
     sendError(clientId, 'Not enough cash');
     return;
   }
@@ -114,7 +117,7 @@ export function handleMarketBuy(
       for (let i = 0; i < actualAmount; i++) {
         player.productionGoods[itemId].push({
           itemId,
-          wearRemainingMs: def.wearDurationMs,
+          wearRemaining: def.wearUses,
           isUsed: false,
         });
         activateProductionGood(player, itemId);
@@ -194,11 +197,13 @@ export function handleMarketSell(
     entry.baseConsumptionRate = playerCount * factor;
   }
 
+  const isPg = itemType === 'production_good';
+
   // Calculate total revenue unit by unit with price recalc (sell at bid price)
   let totalRevenue = 0;
   for (let i = 0; i < amount; i++) {
     entry.supply += 1;
-    recalcPrice(entry, basePrice, refSupply);
+    recalcPrice(entry, basePrice, refSupply, 10, isPg);
     totalRevenue += sellPrice(entry.price);
   }
   totalRevenue = Math.round(totalRevenue * 100) / 100;

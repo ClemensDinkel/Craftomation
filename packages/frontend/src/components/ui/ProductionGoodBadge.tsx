@@ -23,18 +23,11 @@ export function formatBonusText(bonusType: string, bonusValue: number): string {
   }
 }
 
-function formatTime(ms: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
 export function ProductionGoodBadge({ item, definition, compact }: Props) {
   const { t } = useLocale();
 
-  const isActive = item.isUsed && item.wearRemainingMs > 0;
-  const wearFraction = item.wearRemainingMs / definition.wearDurationMs;
+  const isActive = item.isUsed && item.wearRemaining > 0;
+  const wearFraction = item.wearRemaining / definition.wearUses;
 
   const barColor = wearFraction > 0.5
     ? 'bg-green-500'
@@ -49,7 +42,7 @@ export function ProductionGoodBadge({ item, definition, compact }: Props) {
       <div className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs ${statusColor} bg-gray-800/60`}>
         <span className="text-white font-medium">{t(`item.${item.itemId}`)}</span>
         {isActive && (
-          <span className="text-gray-400">{formatTime(item.wearRemainingMs)}</span>
+          <span className="text-gray-400">{item.wearRemaining}/{definition.wearUses}</span>
         )}
         {!item.isUsed && (
           <span className="text-gray-500">{t('productionGood.unused')}</span>
@@ -75,7 +68,7 @@ export function ProductionGoodBadge({ item, definition, compact }: Props) {
               style={{ width: `${wearFraction * 100}%` }}
             />
           </div>
-          <span className="text-xs text-gray-400 font-mono shrink-0">{formatTime(item.wearRemainingMs)}</span>
+          <span className="text-xs text-gray-400 font-mono shrink-0">{item.wearRemaining}/{definition.wearUses}</span>
         </div>
       )}
       {!item.isUsed && (

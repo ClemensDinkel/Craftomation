@@ -243,7 +243,7 @@ function GoodsTab({ player, resources, recipes, market, pgDefs, onBuy, onSell }:
       {/* Resources */}
       <section>
         <h3 className="text-sm font-medium text-gray-400 mb-2">{t('auction.resources')}</h3>
-        <TradeColumnHeaders />
+        <TradeColumnHeaders showConsumption={marketInfoLevel >= 1} />
         <div className="flex flex-col gap-1">
           {resources.map(res => {
             const entry = market.resources[res.id];
@@ -283,7 +283,7 @@ function GoodsTab({ player, resources, recipes, market, pgDefs, onBuy, onSell }:
           <p className="text-gray-600 text-sm">{t('auction.noItems')}</p>
         ) : (
           <div className="flex flex-col gap-3">
-            <TradeColumnHeaders />
+            <TradeColumnHeaders showConsumption={marketInfoLevel >= 1} />
             {tiers.map(tier => {
               const items = consumablesByTier[tier];
               if (!items || items.length === 0) return null;
@@ -331,7 +331,7 @@ function GoodsTab({ player, resources, recipes, market, pgDefs, onBuy, onSell }:
 
 // === Trade Row ===
 
-function TradeColumnHeaders() {
+function TradeColumnHeaders({ showConsumption }: { showConsumption?: boolean } = {}) {
   const { t } = useLocale();
   return (
     <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-gray-500 uppercase tracking-wider">
@@ -340,6 +340,9 @@ function TradeColumnHeaders() {
       <div className="w-[8.5rem] shrink-0" />
       <span className="w-8 text-right shrink-0">{t('auction.colMarket')}</span>
       <span className="w-12 text-right shrink-0">{t('auction.colPrice')}</span>
+      {showConsumption && (
+        <span className="w-8 text-right shrink-0">{t('auction.colConsumption')}</span>
+      )}
     </div>
   );
 }
@@ -630,7 +633,7 @@ function ProductionGoodsTab({ player, market, pgDefs, onBuy, onSell }: {
         <p className="text-gray-600 text-sm">{t('auction.noItems')}</p>
       ) : (
         <>
-          <TradeColumnHeaders />
+          <TradeColumnHeaders showConsumption={marketInfoLevel >= 1} />
           {tiers.map(tier => {
             const items = pgByTier[tier];
             if (!items || items.length === 0) return null;

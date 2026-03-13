@@ -13,7 +13,7 @@ export function getActiveBonus(player: Player, bonusType: ProductionGoodBonusTyp
     const def = defMap.get(itemId);
     if (!def || def.bonusType !== bonusType) continue;
     for (const item of items) {
-      if (item.isUsed && item.wearRemainingMs > 0 && def.bonusValue > best) {
+      if (item.isUsed && item.wearRemaining > 0 && def.bonusValue > best) {
         best = def.bonusValue;
       }
     }
@@ -31,7 +31,7 @@ export function getActiveBonusItemId(player: Player, bonusType: ProductionGoodBo
     const def = defMap.get(itemId);
     if (!def || def.bonusType !== bonusType) continue;
     for (const item of items) {
-      if (item.isUsed && item.wearRemainingMs > 0 && def.bonusValue > bestValue) {
+      if (item.isUsed && item.wearRemaining > 0 && def.bonusValue > bestValue) {
         bestValue = def.bonusValue;
         bestId = itemId;
       }
@@ -70,57 +70,53 @@ export function activateProductionGood(player: Player, itemId: string): void {
 }
 
 /**
- * Process wear for all active production goods.
- * Called each economy tick. Removes expired items and auto-activates replacements.
+ * Apply one unit of wear for a given bonus type.
+ * Called when the bonus is actually used (mining tick, craft completion, lab experiment, etc.).
+ * Removes expired items and auto-activates replacements.
  */
-export function tickWear(player: Player, elapsedMs: number): void {
-  // Group items by bonus type to find the active one per type
-  const byBonusType = new Map<ProductionGoodBonusType, { itemId: string; item: ActiveProductionGood; bonusValue: number }[]>();
+export function applyWear(player: Player, bonusType: ProductionGoodBonusType): void {
+  // Find the strongest active item of this bonus type
+  let strongest: { itemId: string; item: ActiveProductionGood; bonusValue: number } | null = null;
 
   for (const [itemId, items] of Object.entries(player.productionGoods)) {
     const def = defMap.get(itemId);
-    if (!def) continue;
+    if (!def || def.bonusType !== bonusType) continue;
     for (const item of items) {
-      if (!item.isUsed || item.wearRemainingMs <= 0) continue;
-      const list = byBonusType.get(def.bonusType) ?? [];
-      list.push({ itemId, item, bonusValue: def.bonusValue });
-      byBonusType.set(def.bonusType, list);
+      if (!item.isUsed || item.wearRemaining <= 0) continue;
+      if (!strongest || def.bonusValue > strongest.bonusValue) {
+        strongest = { itemId, item, bonusValue: def.bonusValue };
+      }
     }
   }
 
-  // For each bonus type, only the strongest active item ticks wear
-  for (const [, activeItems] of byBonusType) {
-    // Sort by bonusValue descending — strongest first
-    activeItems.sort((a, b) => b.bonusValue - a.bonusValue);
-    const strongest = activeItems[0];
-    strongest.item.wearRemainingMs -= elapsedMs;
-  }
+  if (!strongest) return;
 
-  // Remove expired items and auto-activate replacements
-  for (const [itemId, items] of Object.entries(player.productionGoods)) {
-    const expired = items.filter(i => i.isUsed && i.wearRemainingMs <= 0);
-    if (expired.length === 0) continue;
+  // Deduct 1 use
+  strongest.item.wearRemaining -= 1;
 
-    // Remove expired
-    player.productionGoods[itemId] = items.filter(i => !(i.isUsed && i.wearRemainingMs <= 0));
+  // If expired, remove and auto-activate replacement
+  if (strongest.item.wearRemaining <= 0) {
+    const items = player.productionGoods[strongest.itemId];
+    if (items) {
+      player.productionGoods[strongest.itemId] = items.filter(
+        i => !(i.isUsed && i.wearRemaining <= 0)
+      );
 
-    // Auto-activate: find an unused item of the same type
-    const def = defMap.get(itemId);
-    if (!def) continue;
+      // Auto-activate: find an unused item of the same type
+      const def = defMap.get(strongest.itemId);
+      if (def) {
+        const unused = player.productionGoods[strongest.itemId]?.find(i => !i.isUsed);
+        if (unused) {
+          unused.isUsed = true;
+        } else {
+          autoActivateFallback(player, bonusType);
+        }
+      }
 
-    const unused = player.productionGoods[itemId]?.find(i => !i.isUsed);
-    if (unused) {
-      unused.isUsed = true;
-    } else {
-      // No same item available — check if a weaker item of the same bonus type can take over
-      // This happens automatically via getActiveBonus — the next strongest will be picked
-      // But we need to ensure it's marked as used
-      autoActivateFallback(player, def.bonusType);
-    }
-
-    // Clean up empty arrays
-    if (player.productionGoods[itemId]?.length === 0) {
-      delete player.productionGoods[itemId];
+      // Clean up empty arrays
+      if (player.productionGoods[strongest.itemId]?.length === 0) {
+        delete player.productionGoods[strongest.itemId];
+      }
     }
   }
 }

@@ -24,7 +24,7 @@ export function getActiveBonus(
     const def = defs.get(itemId);
     if (!def || def.bonusType !== bonusType) continue;
     for (const item of items) {
-      if (item.isUsed && item.wearRemainingMs > 0 && def.bonusValue > best) {
+      if (item.isUsed && item.wearRemaining > 0 && def.bonusValue > best) {
         best = def.bonusValue;
       }
     }
@@ -42,7 +42,7 @@ export function getPlayerActiveGoods(
     const def = defs.get(itemId);
     if (!def) continue;
     for (const item of items) {
-      if (item.isUsed && item.wearRemainingMs > 0) {
+      if (item.isUsed && item.wearRemaining > 0) {
         result.push({ item, def });
       }
     }

@@ -325,7 +325,9 @@ function InventoryDialog({ open, onClose, player, resourceMap, pgDefs }: {
 }) {
   const { t } = useLocale();
 
-  const resourceEntries = Object.entries(player.resources).filter(([, v]) => v > 0);
+  const resourceEntries = Object.entries(player.resources)
+    .filter(([, v]) => v > 0)
+    .sort(([a], [b]) => (resourceMap[a]?.name ?? a).localeCompare(resourceMap[b]?.name ?? b));
   const consumableEntries = Object.entries(player.consumables).filter(([, v]) => v > 0);
   const pgEntries = Object.entries(player.productionGoods).filter(([, items]) => items.length > 0);
 
@@ -377,7 +379,7 @@ function InventoryDialog({ open, onClose, player, resourceMap, pgDefs }: {
           )}
         </div>
 
-        {/* Production Goods */}
+        {/* Production Goods — only unused, grouped with count */}
         {pgEntries.length > 0 && (
           <div>
             <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.productionGoods')}</h4>
@@ -385,9 +387,17 @@ function InventoryDialog({ open, onClose, player, resourceMap, pgDefs }: {
               {pgEntries.map(([itemId, items]) => {
                 const def = pgDefs.get(itemId);
                 if (!def) return null;
-                return items.map((item, i) => (
-                  <ProductionGoodBadge key={`${itemId}-${i}`} item={item} definition={def} compact />
-                ));
+                const unusedCount = items.filter(i => !i.isUsed).length;
+                if (unusedCount === 0) return null;
+                const sampleItem = items.find(i => !i.isUsed)!;
+                return (
+                  <div key={itemId} className="flex items-center gap-2">
+                    <ProductionGoodBadge item={sampleItem} definition={def} compact />
+                    {unusedCount > 1 && (
+                      <span className="text-xs text-gray-400 font-mono">x{unusedCount}</span>
+                    )}
+                  </div>
+                );
               })}
             </div>
           </div>

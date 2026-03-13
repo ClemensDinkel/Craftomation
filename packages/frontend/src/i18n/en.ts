@@ -136,6 +136,7 @@ export const en: Record<string, string> = {
   'auction.colPlayer': 'Player',
   'auction.colMarket': 'Market',
   'auction.colPrice': 'Price',
+  'auction.colConsumption': 'Cons.',
 
   // Production Goods
   'item.pickaxe': 'Pickaxe',
