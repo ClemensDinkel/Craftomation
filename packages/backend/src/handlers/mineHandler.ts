@@ -13,7 +13,7 @@ function createDefaultPlayer(name: string): Player {
     resources: {},
     consumables: {},
     knownRecipes: [],
-    technologies: [],
+    patents: [],
     cash: 0,
     mineResources: [],
     mineResourceIndex: 0,

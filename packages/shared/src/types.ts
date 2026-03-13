@@ -8,7 +8,7 @@ export type ModuleType =
   | 'lab'
   | 'auction'
   | 'plantation'
-  | 'university'
+  | 'patent_office'
   | 'stockmarket'
   | 'backroom'
   | 'influencer'
@@ -48,7 +48,7 @@ export interface Player {
   resources: Record<string, number>;        // resourceId -> amount
   consumables: Record<string, number>;      // itemId -> amount
   knownRecipes: string[];                   // recipeIds
-  technologies: string[];
+  patents: string[];
   cash: number;
   mineResources: string[];              // selected resource IDs (rotated each tick)
   mineResourceIndex: number;            // index into mineResources for next production

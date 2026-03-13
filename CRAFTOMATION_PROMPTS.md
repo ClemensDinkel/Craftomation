@@ -24,7 +24,7 @@ Anforderungen:
   - Alle Types aus CLAUDE.md implementieren (SessionConfig, Player, Resource, Recipe,
     MarketState, MarketEntry, RecipeListing, ManufacturingJob, WSMessage, WSMessageType)
   - ModuleType als Union Type: 'mine' | 'manufacturing' | 'lab' | 'auction' | 
-    'plantation' | 'university' | 'stockmarket' | 'backroom' | 'influencer' | 'warehouse'
+    'plantation' | 'patent_office' | 'stockmarket' | 'backroom' | 'influencer' | 'warehouse'
 - frontend/: Vite + React 18 + TypeScript + Tailwind CSS konfigurieren
   - Path alias "@/" für "src/" einrichten
   - Minimales App.tsx mit Placeholder
@@ -472,4 +472,4 @@ Abschluss-Prompt: Reste implementieren und alles zusammenführen.
 - Nach jedem Prompt: kurz reviewen ob alles kompiliert (`npm run build`)
 - Die **CLAUDE.md liegt im Root des Projekts** — Claude Code liest sie automatisch
 - Bei Fragen/Unklarheiten: im Prompt einfach nachfragen lassen
-- Optionale Module (Universität, Börse, etc.) kommen **nach** diesen 10 Prompts als eigene Prompts
+- Optionale Module (Patentamt, Börse, etc.) kommen **nach** diesen 10 Prompts als eigene Prompts

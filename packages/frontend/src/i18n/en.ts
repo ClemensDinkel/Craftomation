@@ -57,7 +57,7 @@ export const en: Record<string, string> = {
   'module.lab': 'Laboratory',
   'module.auction': 'Auction',
   'module.plantation': 'Plantation',
-  'module.university': 'University',
+  'module.patent_office': 'Patent Office',
   'module.stockmarket': 'Stock Market',
   'module.backroom': 'Back Room',
   'module.influencer': 'Influencer',

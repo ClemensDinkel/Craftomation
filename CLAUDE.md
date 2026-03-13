@@ -90,7 +90,7 @@ interface Player {
   productionGoods: Record<string, number>; // itemId -> Menge
   consumables: Record<string, number>;     // itemId -> Menge
   knownRecipes: string[];                  // recipeIds
-  technologies: string[];
+  patents: string[];
   cash: number;
   activeInMine: boolean;
   currentMineResource: string | null;
@@ -144,7 +144,7 @@ interface WSMessage {
 | Modul | Beschreibung |
 |---|---|
 | `plantation` | Wie Mine, aber organische Rohstoffe |
-| `university` | Passive Boni/Technologien kaufen |
+| `patent_office` | Patente kaufen (passive Boni) |
 | `stockmarket` | Unternehmensanteile handeln |
 | `backroom` | Sabotage-Aktionen |
 | `influencer` | Marktmanipulation |

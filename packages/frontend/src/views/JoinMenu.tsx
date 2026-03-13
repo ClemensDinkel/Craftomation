@@ -12,7 +12,7 @@ const MODULE_OPTIONS: { value: ModuleType; labelKey: string }[] = [
   { value: 'lab', labelKey: 'module.lab' },
   { value: 'auction', labelKey: 'module.auction' },
   { value: 'plantation', labelKey: 'module.plantation' },
-  { value: 'university', labelKey: 'module.university' },
+  { value: 'patent_office', labelKey: 'module.patent_office' },
   { value: 'stockmarket', labelKey: 'module.stockmarket' },
   { value: 'backroom', labelKey: 'module.backroom' },
   { value: 'influencer', labelKey: 'module.influencer' },

@@ -9,7 +9,7 @@ const API_BASE = `http://${window.location.hostname}:3001`;
 
 const OPTIONAL_MODULES: { value: ModuleType; labelKey: string }[] = [
   { value: 'plantation', labelKey: 'module.plantation' },
-  { value: 'university', labelKey: 'module.university' },
+  { value: 'patent_office', labelKey: 'module.patent_office' },
   { value: 'stockmarket', labelKey: 'module.stockmarket' },
   { value: 'backroom', labelKey: 'module.backroom' },
   { value: 'influencer', labelKey: 'module.influencer' },
