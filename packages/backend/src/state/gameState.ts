@@ -9,8 +9,11 @@ import {
   ModuleType,
   ProductionGoodDefinition,
 } from '@craftomation/shared';
+import { PRODUCTION_GOOD_DEFINITIONS } from '../data/productionGoods';
 
 const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
+
+const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = { 1: 15, 2: 30, 3: 60, 4: 120 };
 
 function createDefaultConfig(sessionId: string): SessionConfig {
   return {
@@ -206,14 +209,50 @@ class GameStateManager {
     this.config = state.session;
     this.resources = state.resources;
     this.recipes = state.recipes;
-    this.productionGoodDefs = state.productionGoodDefinitions ?? [];
     this.gameTick = state.tick;
     this.gameStarted = false; // Always start paused after load
+
+    // Always use latest production good definitions (they're static constants)
+    this.productionGoodDefs = PRODUCTION_GOOD_DEFINITIONS;
 
     // Migrate market: add productionGoods if missing
     this.market = state.market;
     if (!this.market.productionGoods) {
       this.market.productionGoods = {};
+    }
+    if (!this.market.miningRights) {
+      this.market.miningRights = {};
+    }
+
+    // Migrate recipes: add production good recipes if missing
+    const existingRecipeIds = new Set(this.recipes.map(r => r.id));
+    const resourceIds = this.resources.map(r => r.id);
+    for (const def of PRODUCTION_GOOD_DEFINITIONS) {
+      if (!existingRecipeIds.has(def.id)) {
+        // Generate random sequence for missing production good recipe
+        const seqLength = def.tier + 2;
+        const sequence: string[] = [];
+        for (let i = 0; i < seqLength; i++) {
+          sequence.push(resourceIds[Math.floor(Math.random() * resourceIds.length)]);
+        }
+        this.recipes.push({
+          id: def.id,
+          tier: def.tier,
+          type: 'production_good',
+          sequence,
+        });
+      }
+    }
+
+    // Migrate market: add entries for production good recipes if missing
+    for (const recipe of this.recipes) {
+      if (recipe.type === 'production_good' && !this.market.productionGoods[recipe.id]) {
+        this.market.productionGoods[recipe.id] = {
+          supply: 0,
+          price: PRODUCTION_GOOD_BASE_PRICES[recipe.tier] ?? 15,
+          baseConsumptionRate: 0,
+        };
+      }
     }
 
     // Migrate players: add productionGoods if missing
