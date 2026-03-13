@@ -11,6 +11,7 @@ export const de: Record<string, string> = {
   'hostMenu.title': 'Spiel eröffnen',
   'hostMenu.newGame': 'Neues Spiel',
   'hostMenu.loadGame': 'Spiel laden',
+  'hostMenu.rejoin': 'Laufendes Spiel fortsetzen',
 
   // Join Menu
   'joinMenu.title': 'Spiel beitreten',

@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type { GameState, ModuleType, LabResult } from '@craftomation/shared';
+import { getDeviceId } from '@/utils/deviceId';
 
 type View = 'startMenu' | 'hostMenu' | 'joinMenu' | 'setup' | 'waiting' | 'game';
 
@@ -8,6 +9,7 @@ interface AppState {
   sessionId: string | null;
   moduleType: ModuleType | null;
   alias: string;
+  deviceId: string;
   gameState: GameState | null;
   isHost: boolean;
   labResult: LabResult | null;
@@ -28,6 +30,7 @@ const initialState: AppState = {
   sessionId: null,
   moduleType: null,
   alias: '',
+  deviceId: getDeviceId(),
   gameState: null,
   isHost: false,
   labResult: null,

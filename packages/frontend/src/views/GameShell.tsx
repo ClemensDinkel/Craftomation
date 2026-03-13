@@ -13,7 +13,7 @@ export function GameShell() {
   const { state } = useGame();
 
   const wsUrl = state.sessionId
-    ? `ws://${window.location.hostname}:3001?sessionId=${state.sessionId}`
+    ? `ws://${window.location.hostname}:3001?sessionId=${state.sessionId}&deviceId=${encodeURIComponent(state.deviceId)}`
     : null;
   const { status, send } = useWebSocket(wsUrl);
 

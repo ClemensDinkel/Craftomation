@@ -254,7 +254,7 @@ function processPriceAdjustment(): void {
 
   for (const entry of Object.values(market.resources)) {
     const basePrice = 5;
-    const newPrice = basePrice * (RESOURCE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+    const newPrice = basePrice * (RESOURCE_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1));
     entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
   }
 
@@ -263,14 +263,14 @@ function processPriceAdjustment(): void {
       const basePrice = BASE_PRICES[recipe.tier];
       const entry = market.consumables[recipe.id];
       if (!entry) continue;
-      const newPrice = basePrice * (CONSUMABLE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+      const newPrice = basePrice * (CONSUMABLE_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1));
       entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
     } else {
       const basePrice = PRODUCTION_GOOD_BASE_PRICES[recipe.tier];
       const entry = market.productionGoods[recipe.id];
       if (!entry) continue;
       // sqrt curve for production goods: flatter price scaling
-      const ratio = PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(entry.supply, 1);
+      const ratio = PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1);
       const newPrice = basePrice * Math.sqrt(ratio);
       entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
     }

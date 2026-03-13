@@ -11,6 +11,15 @@ import { handleAddPlayer } from '../handlers/mineHandler';
 
 const router = Router();
 
+// GET /api/session/active — check if a game is currently running
+router.get('/active', (_req: Request, res: Response) => {
+  if (gameState.hasSession() && gameState.isGameStarted()) {
+    res.json({ active: true, sessionId: gameState.getSessionId() });
+  } else {
+    res.json({ active: false });
+  }
+});
+
 // POST /api/session/create
 router.post('/create', (_req: Request, res: Response) => {
   const sessionId = createSession();
@@ -19,20 +28,26 @@ router.post('/create', (_req: Request, res: Response) => {
 
 // POST /api/session/join
 router.post('/join', (req: Request, res: Response) => {
-  const { sessionId, moduleType, alias } = req.body;
+  const { sessionId, moduleType, deviceId } = req.body;
 
   if (!sessionId || !sessionExists(sessionId)) {
     res.status(404).json({ error: 'Session not found' });
     return;
   }
 
+  const clientKey = deviceId || `device_${Date.now()}`;
+
   if (moduleType) {
-    const deviceId = alias || `device_${Date.now()}`;
-    gameState.setClientModule(deviceId, moduleType);
+    gameState.setClientModule(clientKey, moduleType);
   }
 
   const config = gameState.getConfig();
-  res.json({ config });
+  const existingModule = gameState.getClientModule(clientKey);
+  res.json({
+    config,
+    gameStarted: gameState.isGameStarted(),
+    assignedModule: existingModule ?? null,
+  });
 });
 
 // POST /api/session/load

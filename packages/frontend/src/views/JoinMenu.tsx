@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Button, Input, Select } from '@/components/ui';
+import { getDeviceId } from '@/utils/deviceId';
 import type { ModuleType } from '@craftomation/shared';
 
 const API_BASE = `http://${window.location.hostname}:3001`;
@@ -47,7 +48,7 @@ export function JoinMenu() {
       const res = await fetch(`${API_BASE}/api/session/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId.toUpperCase(), moduleType, alias }),
+        body: JSON.stringify({ sessionId: sessionId.toUpperCase(), moduleType, deviceId: getDeviceId() }),
       });
 
       if (!res.ok) {
@@ -55,10 +56,13 @@ export function JoinMenu() {
         return;
       }
 
+      const data = await res.json();
+      const effectiveModule = data.assignedModule ?? moduleType;
+
       dispatch({ type: 'SET_SESSION', sessionId: sessionId.toUpperCase(), isHost: false });
-      dispatch({ type: 'SET_MODULE', moduleType });
+      dispatch({ type: 'SET_MODULE', moduleType: effectiveModule });
       dispatch({ type: 'SET_ALIAS', alias: alias || `Client-${sessionId.slice(0, 3)}` });
-      dispatch({ type: 'NAVIGATE', view: 'waiting' });
+      dispatch({ type: 'NAVIGATE', view: data.gameStarted ? 'game' : 'waiting' });
     } catch {
       setError(t('common.error'));
     }

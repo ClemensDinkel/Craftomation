@@ -17,11 +17,18 @@ export function initWebSocketServer(server: HttpServer): void {
   wss.on('connection', (ws: WebSocket, req) => {
     const params = url.parse(req.url || '', true).query;
     const sessionId = params.sessionId as string | undefined;
-    const clientId = uuidv4();
+    const deviceId = params.deviceId as string | undefined;
+    const clientId = deviceId || uuidv4();
 
     if (!sessionId || gameState.getSessionId() !== sessionId) {
       ws.close(4001, 'Invalid session ID');
       return;
+    }
+
+    // If this alias already has a connection, close the old one
+    const existingWs = gameState.getClient(clientId);
+    if (existingWs && existingWs.readyState === WebSocket.OPEN) {
+      existingWs.close(4002, 'Replaced by new connection');
     }
 
     gameState.addClient(clientId, ws);
@@ -40,8 +47,11 @@ export function initWebSocketServer(server: HttpServer): void {
     });
 
     ws.on('close', () => {
-      gameState.removeClient(clientId);
-      console.log(`[WS] Client disconnected: ${clientId}`);
+      // Only remove if this is still the active socket for this clientId
+      if (gameState.getClient(clientId) === ws) {
+        gameState.removeClient(clientId);
+        console.log(`[WS] Client disconnected: ${clientId}`);
+      }
     });
   });
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Button } from '@/components/ui';
@@ -9,6 +9,25 @@ export function HostMenu() {
   const { t } = useLocale();
   const { dispatch } = useGame();
   const [error, setError] = useState<string | null>(null);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+
+  // Check if a game is already running on this server
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/session/active`);
+        const data = await res.json();
+        if (data.active) setActiveSession(data.sessionId);
+      } catch { /* server not reachable */ }
+    })();
+  }, []);
+
+  function handleRejoin() {
+    if (!activeSession) return;
+    dispatch({ type: 'SET_SESSION', sessionId: activeSession, isHost: true });
+    dispatch({ type: 'SET_ALIAS', alias: 'host' });
+    dispatch({ type: 'NAVIGATE', view: 'game' });
+  }
 
   async function handleNewGame() {
     try {
@@ -50,6 +69,14 @@ export function HostMenu() {
         </div>
       )}
       <div className="flex-1 flex flex-col gap-3 px-4 pb-4">
+        {activeSession && (
+          <button
+            onClick={handleRejoin}
+            className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-2xl font-semibold transition-colors"
+          >
+            {t('hostMenu.rejoin')}
+          </button>
+        )}
         <button
           onClick={handleNewGame}
           className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-semibold transition-colors"

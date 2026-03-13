@@ -163,7 +163,7 @@ class GameStateManager {
 
   removeClient(id: string): void {
     this.connectedClients.delete(id);
-    this.clientModules.delete(id);
+    // Keep module assignment so reconnecting clients get their module back
   }
 
   getClient(id: string): WebSocket | undefined {
@@ -177,6 +177,10 @@ class GameStateManager {
   // Client module assignments
   setClientModule(clientId: string, moduleType: ModuleType): void {
     this.clientModules.set(clientId, moduleType);
+  }
+
+  getClientModule(clientId: string): ModuleType | undefined {
+    return this.clientModules.get(clientId);
   }
 
   getAssignedModules(): ModuleType[] {
