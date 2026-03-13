@@ -9,14 +9,13 @@ interface Props {
   player: Player;
   resources: Resource[];
   recipes: Recipe[];
-  gameSpeed: number;
   send: (msg: WSMessage) => void;
   onBack: () => void;
 }
 
 const isDev = import.meta.env.DEV;
 
-export function PlayerManufacturingView({ player, resources, recipes, gameSpeed, send, onBack }: Props) {
+export function PlayerManufacturingView({ player, resources, recipes, send, onBack }: Props) {
   const { t } = useLocale();
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
@@ -128,7 +127,7 @@ export function PlayerManufacturingView({ player, resources, recipes, gameSpeed,
                 key={job.id}
                 job={job}
                 isFirst={index === 0}
-                gameSpeed={gameSpeed}
+
                 recipeName={t(`item.${job.recipeId}`)}
                 onRemove={() => handleRemoveJob(index)}
               />
@@ -163,10 +162,9 @@ export function PlayerManufacturingView({ player, resources, recipes, gameSpeed,
 
 // --- Sub-components ---
 
-function JobRow({ job, isFirst, gameSpeed, recipeName, onRemove }: {
+function JobRow({ job, isFirst, recipeName, onRemove }: {
   job: ManufacturingJob;
   isFirst: boolean;
-  gameSpeed: number;
   recipeName: string;
   onRemove: () => void;
 }) {
@@ -194,8 +192,9 @@ function JobRow({ job, isFirst, gameSpeed, recipeName, onRemove }: {
   }, [isFirst, job.resourcesConsumed]);
 
   const elapsed = now - snapshotRef.current.time;
+  // gameSpeed is already baked into job.duration — server ticks remainingMs at 1:1 real time
   const interpolatedRemaining = isFirst && job.resourcesConsumed
-    ? Math.max(0, snapshotRef.current.remaining - elapsed * gameSpeed)
+    ? Math.max(0, snapshotRef.current.remaining - elapsed)
     : job.remainingMs;
 
   let progress = isFirst && job.resourcesConsumed
@@ -332,7 +331,7 @@ function InventoryDialog({ open, onClose, player, resourceMap, pgDefs }: {
 
   return (
     <Dialog open={open} onClose={onClose} title={t('manufacturing.inventory')}>
-      <div className="flex flex-col gap-4 max-h-80 overflow-y-auto">
+      <div className="flex flex-col gap-4 max-h-80 overflow-y-auto pr-2">
         {/* Resources */}
         <div>
           <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.resources')}</h4>

@@ -32,7 +32,6 @@ export function ManufacturingModule({ send }: ManufacturingModuleProps) {
         player={selectedPlayer}
         resources={state.gameState?.resources ?? []}
         recipes={state.gameState?.recipes ?? []}
-        gameSpeed={state.gameState?.session.gameSpeed ?? 1}
         send={send}
         onBack={() => setSelectedPlayerId(null)}
       />

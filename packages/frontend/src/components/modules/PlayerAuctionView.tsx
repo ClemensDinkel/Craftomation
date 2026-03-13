@@ -355,8 +355,8 @@ function TradeRow({ label, owned, supply, price, cash, consumptionRate, onBuy, o
   onSell: (amount: number) => void;
 }) {
   const roundedPrice = Math.round(price * 100) / 100;
-  const canBuy1 = cash >= roundedPrice;
-  const canBuy5 = cash >= roundedPrice * 5;
+  const canBuy1 = cash >= roundedPrice && supply >= 1;
+  const canBuy5 = cash >= roundedPrice * 5 && supply >= 5;
   const canSell1 = owned >= 1;
   const canSell5 = owned >= 5;
 

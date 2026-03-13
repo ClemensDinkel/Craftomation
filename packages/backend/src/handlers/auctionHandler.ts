@@ -65,6 +65,13 @@ export function handleMarketBuy(
   const entry = entries[itemId];
   if (!entry) return;
 
+  // Check if enough supply is available
+  const actualAmount = Math.min(amount, Math.floor(entry.supply));
+  if (actualAmount <= 0) {
+    sendError(clientId, 'Out of stock');
+    return;
+  }
+
   const recipe = gameState.getRecipes().find(r => r.id === itemId);
   const tier = recipe?.tier ?? 1;
   const basePrice = itemType === 'resource'
@@ -80,7 +87,7 @@ export function handleMarketBuy(
 
   // Calculate total cost unit by unit with price recalc (buy at ask price)
   let totalCost = 0;
-  for (let i = 0; i < amount; i++) {
+  for (let i = 0; i < actualAmount; i++) {
     totalCost += buyPrice(entry.price);
     entry.supply = Math.max(0, entry.supply - 1);
     recalcPrice(entry, basePrice, refSupply);
@@ -89,7 +96,7 @@ export function handleMarketBuy(
 
   if (player.cash < totalCost) {
     // Rollback supply change
-    entry.supply += amount;
+    entry.supply += actualAmount;
     recalcPrice(entry, basePrice, refSupply);
     sendError(clientId, 'Not enough cash');
     return;
@@ -104,7 +111,7 @@ export function handleMarketBuy(
       if (!player.productionGoods[itemId]) {
         player.productionGoods[itemId] = [];
       }
-      for (let i = 0; i < amount; i++) {
+      for (let i = 0; i < actualAmount; i++) {
         player.productionGoods[itemId].push({
           itemId,
           wearRemainingMs: def.wearDurationMs,
@@ -115,7 +122,7 @@ export function handleMarketBuy(
     }
   } else {
     const inventory = itemType === 'resource' ? player.resources : player.consumables;
-    inventory[itemId] = (inventory[itemId] ?? 0) + amount;
+    inventory[itemId] = (inventory[itemId] ?? 0) + actualAmount;
   }
 
   gameState.setPlayer(playerId, player);
