@@ -27,6 +27,11 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
   const [resultColors, setResultColors] = useState<LabColor[] | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
+  const [bonusInfo, setBonusInfo] = useState<{
+    distinctResourceCount?: number;
+    directionHints?: ('left' | 'right' | null)[];
+    excludedResources?: string[];
+  } | null>(null);
 
   const availableSlots = getAvailableSlots();
 
@@ -78,6 +83,13 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     if (result.colorCoding) {
       setResultColors(result.colorCoding);
     }
+
+    // Capture bonus info
+    const bonus: typeof bonusInfo = {};
+    if (result.distinctResourceCount !== undefined) bonus.distinctResourceCount = result.distinctResourceCount;
+    if (result.directionHints) bonus.directionHints = result.directionHints;
+    if (result.excludedResources && result.excludedResources.length > 0) bonus.excludedResources = result.excludedResources;
+    setBonusInfo(Object.keys(bonus).length > 0 ? bonus : null);
 
     if (result.match && result.recipeUnlocked) {
       setResultMessage(t('lab.recipeUnlocked') + ': ' + t(`item.${result.recipeUnlocked.id}`));
@@ -142,6 +154,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     setSlots(Array(MAX_SLOTS).fill(null));
     setResultColors(null);
     setResultMessage(null);
+    setBonusInfo(null);
   };
 
   return (
@@ -189,6 +202,12 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
                     >
                       {res.initialLetter}
                     </span>
+                    {/* Direction hint arrow for yellow slots */}
+                    {color === 'yellow' && bonusInfo?.directionHints?.[i] && (
+                      <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-yellow-400 text-[10px] font-bold">
+                        {bonusInfo.directionHints[i] === 'left' ? '\u2190' : '\u2192'}
+                      </span>
+                    )}
                     {!resultColors && (
                       <button
                         onClick={() => handleClearSlot(i)}
@@ -223,6 +242,25 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
               : 'bg-gray-800 text-gray-300'
           }`}>
             {resultMessage}
+          </div>
+        )}
+
+        {/* Bonus info from production goods */}
+        {bonusInfo && resultColors && (
+          <div className="flex flex-col gap-1 mb-3">
+            {bonusInfo.distinctResourceCount !== undefined && (
+              <div className="text-center text-xs px-3 py-1.5 rounded-lg bg-indigo-900/30 text-indigo-300">
+                {bonusInfo.distinctResourceCount} {t('productionGood.distinctCount')}
+              </div>
+            )}
+            {bonusInfo.excludedResources && bonusInfo.excludedResources.length > 0 && (
+              <div className="text-center text-xs px-3 py-1.5 rounded-lg bg-purple-900/30 text-purple-300">
+                {t('productionGood.notInRecipe')}: {bonusInfo.excludedResources.map(resId => {
+                  const r = resourceMap[resId];
+                  return r?.name ?? resId;
+                }).join(', ')}
+              </div>
+            )}
           </div>
         )}
 

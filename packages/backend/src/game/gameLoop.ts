@@ -1,6 +1,7 @@
 import { Player, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
+import { getActiveBonus, getActiveBonusItemId, activateProductionGood, tickWear } from './productionGoodUtils';
 
 const SUB_TICK_MS = 2_000;        // fast tick: every 2 seconds
 const ECONOMY_TICK_INTERVAL = 5;  // economy runs every 5 sub-ticks = 10 seconds
@@ -8,6 +9,7 @@ const MINE_BASE_INTERVAL_MS = 10_000; // base: 1 resource every 10s
 
 const RESOURCE_REFERENCE_SUPPLY = 100;
 const CONSUMABLE_REFERENCE_SUPPLY = 15;
+const PRODUCTION_GOOD_REFERENCE_SUPPLY = 10;
 
 let loopTimer: NodeJS.Timeout | null = null;
 let subTickCount = 0;
@@ -17,6 +19,13 @@ const BASE_PRICES: Record<number, number> = {
   2: 20,
   3: 32,
   4: 50,
+};
+
+const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = {
+  1: 15,
+  2: 30,
+  3: 60,
+  4: 120,
 };
 
 // --- Mining ---
@@ -73,9 +82,11 @@ function processMining(players: Player[]): void {
     // (loop handles case where interval is shorter than sub-tick)
     let produced = 0;
     const maxPerTick = 5; // safety cap to prevent runaway loops
+    const miningBoost = getActiveBonus(player, 'mining_boost');
+    const baseProduction = 1 + miningBoost; // e.g. 1 + 4 = 5 with Quantum Drill
     while (now >= player.nextMineProductionAt && produced < maxPerTick) {
       const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
-      player.resources[resourceId] = (player.resources[resourceId] ?? 0) + 1;
+      player.resources[resourceId] = (player.resources[resourceId] ?? 0) + baseProduction;
       player.mineResourceIndex = (player.mineResourceIndex + 1) % player.mineResources.length;
 
       // Schedule next production based on the NEW resource (which may have different rights)
@@ -116,8 +127,16 @@ export function tryStartJob(player: Player, speed: number): boolean {
     if ((player.resources[resId] ?? 0) < needed) return false;
   }
 
+  // Nano Forge special: skip 1 random resource from cost
+  const activeItemId = getActiveBonusItemId(player, 'craft_speed');
+  if (activeItemId === 'nano_forge' && recipe.sequence.length > 0) {
+    const skipIndex = Math.floor(Math.random() * recipe.sequence.length);
+    const skippedResId = recipe.sequence[skipIndex];
+    cost[skippedResId] = Math.max(0, (cost[skippedResId] ?? 0) - 1);
+  }
+
   for (const [resId, needed] of Object.entries(cost)) {
-    player.resources[resId] -= needed;
+    if (needed > 0) player.resources[resId] -= needed;
   }
   job.resourcesConsumed = true;
   job.startedAt = Date.now();
@@ -128,7 +147,23 @@ function completeJob(player: Player, speed: number): void {
   const job = player.manufacturingQueue[0];
   const recipe = gameState.getRecipes().find(r => r.id === job.recipeId);
   if (recipe) {
-    player.consumables[recipe.id] = (player.consumables[recipe.id] ?? 0) + 1;
+    if (recipe.type === 'production_good') {
+      // Add as ActiveProductionGood
+      const def = gameState.getProductionGoodDefinitions().find(d => d.id === recipe.id);
+      if (def) {
+        if (!player.productionGoods[recipe.id]) {
+          player.productionGoods[recipe.id] = [];
+        }
+        player.productionGoods[recipe.id].push({
+          itemId: recipe.id,
+          wearRemainingMs: def.wearDurationMs,
+          isUsed: false,
+        });
+        activateProductionGood(player, recipe.id);
+      }
+    } else {
+      player.consumables[recipe.id] = (player.consumables[recipe.id] ?? 0) + 1;
+    }
   }
 
   const isRepeat = job.repeat;
@@ -138,8 +173,13 @@ function completeJob(player: Player, speed: number): void {
   if (isRepeat) {
     const repeatRecipe = gameState.getRecipes().find(r => r.id === recipeId);
     if (repeatRecipe) {
-      const baseDuration = { 1: 30_000, 2: 40_000, 3: 50_000, 4: 60_000 }[repeatRecipe.tier] ?? 30_000;
-      const duration = Math.round(baseDuration / Math.max(speed, 0.1));
+      const baseDurationMap = repeatRecipe.type === 'production_good'
+        ? { 1: 60_000, 2: 80_000, 3: 100_000, 4: 120_000 }
+        : { 1: 30_000, 2: 40_000, 3: 50_000, 4: 60_000 };
+      const baseDuration = baseDurationMap[repeatRecipe.tier] ?? 30_000;
+      const craftSpeedBonus = getActiveBonus(player, 'craft_speed');
+      const speedReduction = 1 - craftSpeedBonus / 100;
+      const duration = Math.round(baseDuration * speedReduction / Math.max(speed, 0.1));
       player.manufacturingQueue.push({
         id: `${recipeId}-${Date.now()}`,
         recipeId,
@@ -213,12 +253,32 @@ function processPriceAdjustment(): void {
   }
 
   for (const recipe of recipes) {
-    const basePrice = BASE_PRICES[recipe.tier];
-    const entry = market.consumables[recipe.id];
-    if (!entry) continue;
+    if (recipe.type === 'consumable') {
+      const basePrice = BASE_PRICES[recipe.tier];
+      const entry = market.consumables[recipe.id];
+      if (!entry) continue;
+      const newPrice = basePrice * (CONSUMABLE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+      entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
+    } else {
+      const basePrice = PRODUCTION_GOOD_BASE_PRICES[recipe.tier];
+      const entry = market.productionGoods[recipe.id];
+      if (!entry) continue;
+      const newPrice = basePrice * (PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
+      entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
+    }
+  }
+}
 
-    const newPrice = basePrice * (CONSUMABLE_REFERENCE_SUPPLY / Math.max(entry.supply, 1));
-    entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
+// --- Production Good Wear ---
+
+function processProductionGoodWear(players: Player[]): void {
+  const config = gameState.getConfig();
+  const speed = config?.gameSpeed ?? 1.0;
+  // Wear elapsed per economy tick, scaled by gameSpeed
+  const elapsedMs = ECONOMY_TICK_INTERVAL * SUB_TICK_MS * speed;
+
+  for (const player of players) {
+    tickWear(player, elapsedMs);
   }
 }
 
@@ -234,6 +294,7 @@ function processTick(): void {
   const isEconomyTick = subTickCount % ECONOMY_TICK_INTERVAL === 0;
   if (isEconomyTick) {
     processManufacturing(players);
+    processProductionGoodWear(players);
     processMarketConsumption();
     processPriceAdjustment();
     gameState.incrementTick();

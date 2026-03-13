@@ -1,6 +1,7 @@
 import { WSMessageType, type LabColor, type LabResult } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
+import { getActiveBonus } from '../game/productionGoodUtils';
 
 function broadcastGameState(): void {
   broadcast({
@@ -132,11 +133,40 @@ export function handleLabExperiment(
   gameState.setPlayer(playerId, player);
   broadcastGameState();
 
-  return {
+  // Build result with production good bonuses
+  const result: LabResult = {
     success: true,
     match: isMatch,
     recipeUnlocked: unlockedRecipe,
     colorCoding: bestCoding,
     similarity: bestSimilarity,
   };
+
+  // Find the best-matching recipe for bonus calculations
+  const bestRecipe = bestRecipeId ? gameState.getRecipes().find(r => r.id === bestRecipeId) : null;
+
+  // Notizbuch bonus: show count of distinct resources in target recipe
+  if (getActiveBonus(player, 'lab_distinct_count') > 0 && bestRecipe) {
+    result.distinctResourceCount = new Set(bestRecipe.sequence).size;
+  }
+
+  // Mikroskop bonus: direction hints for yellow results
+  if (getActiveBonus(player, 'lab_direction') > 0 && bestRecipe && bestCoding) {
+    result.directionHints = bestCoding.map((color, i) => {
+      if (color !== 'yellow') return null;
+      // Find where this resource actually is in the target
+      const targetIdx = bestRecipe.sequence.indexOf(sequence[i]);
+      if (targetIdx === -1) return null;
+      return targetIdx < i ? 'left' : 'right';
+    });
+  }
+
+  // Spektrometer bonus: show which resources are NOT in the target recipe
+  if (getActiveBonus(player, 'lab_exclusion') > 0 && bestRecipe) {
+    const targetSet = new Set(bestRecipe.sequence);
+    const allResources = gameState.getResources().map(r => r.id);
+    result.excludedResources = allResources.filter(id => !targetSet.has(id));
+  }
+
+  return result;
 }

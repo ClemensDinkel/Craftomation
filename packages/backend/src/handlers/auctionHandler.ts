@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { MarketEntry, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast, sendTo } from '../websocket/wsServer';
+import { activateProductionGood, getDefinition } from '../game/productionGoodUtils';
 
 const RESOURCE_REFERENCE_SUPPLY = 100;
 const CONSUMABLE_REFERENCE_SUPPLY = 15;
@@ -42,9 +43,12 @@ function sellPrice(price: number): number {
   return Math.round(price * (1 - SPREAD) * 100) / 100;
 }
 
+const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = { 1: 15, 2: 30, 3: 60, 4: 120 };
+const PRODUCTION_GOOD_REFERENCE_SUPPLY = 10;
+
 export function handleMarketBuy(
   clientId: string,
-  payload: { playerId: string; itemId: string; itemType: 'resource' | 'consumable'; amount: number },
+  payload: { playerId: string; itemId: string; itemType: 'resource' | 'consumable' | 'production_good'; amount: number },
 ): void {
   const { playerId, itemId, itemType, amount } = payload;
   if (amount <= 0) return;
@@ -53,13 +57,26 @@ export function handleMarketBuy(
   if (!player) return;
 
   const market = gameState.getMarket();
-  const entries = itemType === 'resource' ? market.resources : market.consumables;
+  const entries = itemType === 'resource'
+    ? market.resources
+    : itemType === 'production_good'
+      ? market.productionGoods
+      : market.consumables;
   const entry = entries[itemId];
   if (!entry) return;
 
-  const isResource = itemType === 'resource';
-  const basePrice = isResource ? RESOURCE_BASE_PRICE : (BASE_PRICES[gameState.getRecipes().find(r => r.id === itemId)?.tier ?? 1] ?? 12);
-  const refSupply = isResource ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
+  const recipe = gameState.getRecipes().find(r => r.id === itemId);
+  const tier = recipe?.tier ?? 1;
+  const basePrice = itemType === 'resource'
+    ? RESOURCE_BASE_PRICE
+    : itemType === 'production_good'
+      ? (PRODUCTION_GOOD_BASE_PRICES[tier] ?? 15)
+      : (BASE_PRICES[tier] ?? 12);
+  const refSupply = itemType === 'resource'
+    ? RESOURCE_REFERENCE_SUPPLY
+    : itemType === 'production_good'
+      ? PRODUCTION_GOOD_REFERENCE_SUPPLY
+      : CONSUMABLE_REFERENCE_SUPPLY;
 
   // Calculate total cost unit by unit with price recalc (buy at ask price)
   let totalCost = 0;
@@ -80,8 +97,26 @@ export function handleMarketBuy(
 
   player.cash = Math.round((player.cash - totalCost) * 100) / 100;
 
-  const inventory = isResource ? player.resources : player.consumables;
-  inventory[itemId] = (inventory[itemId] ?? 0) + amount;
+  if (itemType === 'production_good') {
+    // Add as ActiveProductionGood
+    const def = getDefinition(itemId);
+    if (def) {
+      if (!player.productionGoods[itemId]) {
+        player.productionGoods[itemId] = [];
+      }
+      for (let i = 0; i < amount; i++) {
+        player.productionGoods[itemId].push({
+          itemId,
+          wearRemainingMs: def.wearDurationMs,
+          isUsed: false,
+        });
+        activateProductionGood(player, itemId);
+      }
+    }
+  } else {
+    const inventory = itemType === 'resource' ? player.resources : player.consumables;
+    inventory[itemId] = (inventory[itemId] ?? 0) + amount;
+  }
 
   gameState.setPlayer(playerId, player);
   gameState.setMarket(market);
@@ -90,7 +125,7 @@ export function handleMarketBuy(
 
 export function handleMarketSell(
   clientId: string,
-  payload: { playerId: string; itemId: string; itemType: 'resource' | 'consumable'; amount: number },
+  payload: { playerId: string; itemId: string; itemType: 'resource' | 'consumable' | 'production_good'; amount: number },
 ): void {
   const { playerId, itemId, itemType, amount } = payload;
   if (amount <= 0) return;
@@ -99,33 +134,56 @@ export function handleMarketSell(
   if (!player) return;
 
   const market = gameState.getMarket();
-  const entries = itemType === 'resource' ? market.resources : market.consumables;
+  const entries = itemType === 'resource'
+    ? market.resources
+    : itemType === 'production_good'
+      ? market.productionGoods
+      : market.consumables;
   const entry = entries[itemId];
   if (!entry) return;
 
-  const inventory = itemType === 'resource' ? player.resources : player.consumables;
-  const owned = Math.floor(inventory[itemId] ?? 0);
-  if (owned < amount) {
-    sendError(clientId, 'Not enough items');
-    return;
+  // For production goods: only unused items can be sold
+  if (itemType === 'production_good') {
+    const items = player.productionGoods[itemId] ?? [];
+    const unusedCount = items.filter(i => !i.isUsed).length;
+    if (unusedCount < amount) {
+      sendError(clientId, 'Not enough unused items to sell');
+      return;
+    }
+  } else {
+    const inventory = itemType === 'resource' ? player.resources : player.consumables;
+    const owned = Math.floor(inventory[itemId] ?? 0);
+    if (owned < amount) {
+      sendError(clientId, 'Not enough items');
+      return;
+    }
   }
 
+  const recipe = gameState.getRecipes().find(r => r.id === itemId);
+  const tier = recipe?.tier ?? 1;
   const isResource = itemType === 'resource';
-  const basePrice = isResource ? RESOURCE_BASE_PRICE : (BASE_PRICES[gameState.getRecipes().find(r => r.id === itemId)?.tier ?? 1] ?? 12);
-  const refSupply = isResource ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
+  const basePrice = isResource
+    ? RESOURCE_BASE_PRICE
+    : itemType === 'production_good'
+      ? (PRODUCTION_GOOD_BASE_PRICES[tier] ?? 15)
+      : (BASE_PRICES[tier] ?? 12);
+  const refSupply = isResource
+    ? RESOURCE_REFERENCE_SUPPLY
+    : itemType === 'production_good'
+      ? PRODUCTION_GOOD_REFERENCE_SUPPLY
+      : CONSUMABLE_REFERENCE_SUPPLY;
 
   // Activate consumption for consumables on first sale (tier-dependent)
-  if (!isResource && entry.baseConsumptionRate === 0) {
+  if (itemType === 'consumable' && entry.baseConsumptionRate === 0) {
     const config = gameState.getConfig();
     const playerCount = config?.playerCount ?? 4;
-    const recipe = gameState.getRecipes().find(r => r.id === itemId);
     const tierFactor: Record<number, number> = {
-      1: 0.5,   // high turnover — volume strategy
+      1: 0.5,
       2: 0.35,
       3: 0.2,
-      4: 0.12,  // low turnover — margin strategy
+      4: 0.12,
     };
-    const factor = tierFactor[recipe?.tier ?? 1] ?? 0.3;
+    const factor = tierFactor[tier] ?? 0.3;
     entry.baseConsumptionRate = playerCount * factor;
   }
 
@@ -138,7 +196,23 @@ export function handleMarketSell(
   }
   totalRevenue = Math.round(totalRevenue * 100) / 100;
 
-  inventory[itemId] = owned - amount;
+  // Remove items from inventory
+  if (itemType === 'production_good') {
+    const items = player.productionGoods[itemId] ?? [];
+    let removed = 0;
+    player.productionGoods[itemId] = items.filter(i => {
+      if (removed >= amount) return true;
+      if (!i.isUsed) { removed++; return false; }
+      return true;
+    });
+    if (player.productionGoods[itemId].length === 0) {
+      delete player.productionGoods[itemId];
+    }
+  } else {
+    const inventory = isResource ? player.resources : player.consumables;
+    inventory[itemId] = (inventory[itemId] ?? 0) - amount;
+  }
+
   player.cash = Math.round((player.cash + totalRevenue) * 100) / 100;
 
   gameState.setPlayer(playerId, player);

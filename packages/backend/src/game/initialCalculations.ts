@@ -7,6 +7,7 @@ import {
   loadOrganicProducts,
   RawElement,
 } from '../data/csvLoader';
+import { PRODUCTION_GOOD_DEFINITIONS } from '../data/productionGoods';
 
 const RESOURCE_COLORS = [
   '#E74C3C', // Red
@@ -100,7 +101,7 @@ const RECIPES_PER_TIER: Record<number, number> = {
 };
 
 // Step 2: Generate recipes (consumables only)
-function generateRecipes(config: SessionConfig, resources: Resource[]): Recipe[] {
+function generateConsumableRecipes(config: SessionConfig, resources: Resource[]): Recipe[] {
   const resourceIds = resources.map(r => r.id);
 
   const metalProducts = loadMetalProducts();
@@ -128,11 +129,31 @@ function generateRecipes(config: SessionConfig, resources: Resource[]): Recipe[]
   return recipes;
 }
 
+// Step 2b: Generate production good recipes
+function generateProductionGoodRecipes(resources: Resource[]): Recipe[] {
+  const resourceIds = resources.map(r => r.id);
+
+  return PRODUCTION_GOOD_DEFINITIONS.map(def => ({
+    id: def.id,
+    tier: def.tier,
+    type: 'production_good' as const,
+    sequence: randomSequence(resourceIds, def.tier + 2),
+  }));
+}
+
+const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = {
+  1: 15,
+  2: 30,
+  3: 60,
+  4: 120,
+};
+
 // Step 3: Initialize market
 function initializeMarket(config: SessionConfig, resources: Resource[], recipes: Recipe[]): MarketState {
   const market: MarketState = {
     resources: {},
     consumables: {},
+    productionGoods: {},
     recipeListings: [],
     miningRights: {},
   };
@@ -147,11 +168,20 @@ function initializeMarket(config: SessionConfig, resources: Resource[], recipes:
   }
 
   for (const recipe of recipes) {
-    market.consumables[recipe.id] = {
-      supply: 0,
-      price: BASE_PRICES[recipe.tier],
-      baseConsumptionRate: 0,
-    };
+    if (recipe.type === 'consumable') {
+      market.consumables[recipe.id] = {
+        supply: 0,
+        price: BASE_PRICES[recipe.tier],
+        baseConsumptionRate: 0,
+      };
+    } else {
+      // Production goods: no automatic consumption (consumed via wear by players)
+      market.productionGoods[recipe.id] = {
+        supply: 0,
+        price: PRODUCTION_GOOD_BASE_PRICES[recipe.tier],
+        baseConsumptionRate: 0,
+      };
+    }
   }
 
   return market;
@@ -177,14 +207,18 @@ export function runInitialCalculations(config: SessionConfig): void {
   const resources = selectResources(config);
   gameState.setResources(resources);
 
-  const recipes = generateRecipes(config, resources);
+  const consumableRecipes = generateConsumableRecipes(config, resources);
+  const productionGoodRecipes = generateProductionGoodRecipes(resources);
+  const recipes = [...consumableRecipes, ...productionGoodRecipes];
   gameState.setRecipes(recipes);
+
+  gameState.setProductionGoodDefinitions(PRODUCTION_GOOD_DEFINITIONS);
 
   const market = initializeMarket(config, resources, recipes);
   gameState.setMarket(market);
 
   assignPlayerResources(resources);
 
-  console.log(`[Init] Resources: ${resources.length}, Recipes: ${recipes.length}`);
-  console.log(`[Init] Market: ${Object.keys(market.resources).length} resources, ${Object.keys(market.consumables).length} consumables`);
+  console.log(`[Init] Resources: ${resources.length}, Consumable Recipes: ${consumableRecipes.length}, Production Good Recipes: ${productionGoodRecipes.length}`);
+  console.log(`[Init] Market: ${Object.keys(market.resources).length} resources, ${Object.keys(market.consumables).length} consumables, ${Object.keys(market.productionGoods).length} production goods`);
 }

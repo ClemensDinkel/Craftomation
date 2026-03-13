@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
-import type { Player, Resource, MiningRight, WSMessage } from '@craftomation/shared';
+import type { Player, Resource, MiningRight, WSMessage, ProductionGoodDefinition } from '@craftomation/shared';
 import { Button, Input, Dialog } from '@/components/ui';
+import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
 
 interface MineModuleProps {
   send: (msg: WSMessage) => void;
@@ -24,6 +25,7 @@ export function MineModule({ send }: MineModuleProps) {
 
   const resources: Resource[] = state.gameState?.resources ?? [];
   const miningRights = state.gameState?.market?.miningRights ?? {};
+  const pgDefs = useProductionGoodDefs();
 
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) return;
@@ -79,6 +81,7 @@ export function MineModule({ send }: MineModuleProps) {
             player={player}
             resources={resources}
             miningRights={miningRights}
+            pgDefs={pgDefs}
             onBoost={handleBoost}
             onChangeResources={handleChangeResources}
           />
@@ -92,13 +95,16 @@ interface PlayerRowProps {
   player: Player;
   resources: Resource[];
   miningRights: Record<string, MiningRight[]>;
+  pgDefs: Map<string, ProductionGoodDefinition>;
   onBoost: (playerId: string) => void;
   onChangeResources: (playerId: string, resourceIds: string[]) => void;
 }
 
-function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources }: PlayerRowProps) {
+function PlayerRow({ player, resources, miningRights, pgDefs, onBoost, onChangeResources }: PlayerRowProps) {
   const { t } = useLocale();
   const [now, setNow] = useState(Date.now());
+
+  const miningBonus = getActiveBonus(player, 'mining_boost', pgDefs);
 
   const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
   const isCooldown = !isBoosted && player.mineBoostCooldownUntil !== null && now < player.mineBoostCooldownUntil;
@@ -156,6 +162,11 @@ function PlayerRow({ player, resources, miningRights, onBoost, onChangeResources
       <div className="flex items-center gap-3">
         <span className="flex-1 text-white font-medium truncate flex items-center gap-1.5">
           {player.name}
+          {miningBonus > 0 && (
+            <span className="text-xs text-cyan-400 font-bold" title={`Mining +${miningBonus}`}>
+              +{miningBonus}
+            </span>
+          )}
           {heldRights.length > 0 && (
             <span className="text-green-400 text-[10px]" title={`${heldRights.length}x 2x`}>
               &#9650;

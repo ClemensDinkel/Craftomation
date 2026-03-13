@@ -3,6 +3,7 @@ import { ManufacturingJob, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
 import { tryStartJob } from '../game/gameLoop';
+import { getActiveBonus } from '../game/productionGoodUtils';
 
 // Crafting durations in ms per tier (consumable)
 const CRAFTING_DURATION_MS: Record<number, number> = {
@@ -10,6 +11,14 @@ const CRAFTING_DURATION_MS: Record<number, number> = {
   2: 40_000,
   3: 50_000,
   4: 60_000,
+};
+
+// Crafting durations in ms per tier (production goods — longer)
+const CRAFTING_DURATION_PRODUCTION_GOOD_MS: Record<number, number> = {
+  1: 60_000,
+  2: 80_000,
+  3: 100_000,
+  4: 120_000,
 };
 
 function broadcastGameState(): void {
@@ -36,8 +45,12 @@ export function handleAddManufacturingJob(payload: {
 
   const config = gameState.getConfig();
   const speed = config?.gameSpeed ?? 1.0;
-  const baseDuration = CRAFTING_DURATION_MS[recipe.tier] ?? 30_000;
-  const duration = Math.round(baseDuration / Math.max(speed, 0.1));
+  const baseDuration = recipe.type === 'production_good'
+    ? (CRAFTING_DURATION_PRODUCTION_GOOD_MS[recipe.tier] ?? 60_000)
+    : (CRAFTING_DURATION_MS[recipe.tier] ?? 30_000);
+  const craftSpeedBonus = getActiveBonus(player, 'craft_speed'); // 0, 25, 40, 55, or 60
+  const speedReduction = 1 - craftSpeedBonus / 100;
+  const duration = Math.round(baseDuration * speedReduction / Math.max(speed, 0.1));
 
   const job: ManufacturingJob = {
     id: uuidv4(),

@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
-import type { Player, Resource, Recipe, MarketState, WSMessage } from '@craftomation/shared';
+import type { Player, Resource, Recipe, MarketState, WSMessage, ProductionGoodDefinition } from '@craftomation/shared';
 import { Button, Input, Dialog, Select } from '@/components/ui';
+import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
 
 interface Props {
   player: Player;
@@ -14,11 +15,12 @@ interface Props {
   onBack: () => void;
 }
 
-type Tab = 'goods' | 'recipes' | 'rights';
+type Tab = 'goods' | 'recipes' | 'rights' | 'pgGoods';
 
 export function PlayerAuctionView({ player, players, resources, recipes, market, send, onBack }: Props) {
   const { t } = useLocale();
   const [tab, setTab] = useState<Tab>('goods');
+  const pgDefs = useProductionGoodDefs();
   const [listDialogOpen, setListDialogOpen] = useState(false);
   const [listRecipeId, setListRecipeId] = useState('');
   const [listPrice, setListPrice] = useState('');
@@ -29,11 +31,11 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
     return map;
   }, [players]);
 
-  const handleBuy = (itemId: string, itemType: 'resource' | 'consumable', amount: number) => {
+  const handleBuy = (itemId: string, itemType: 'resource' | 'consumable' | 'production_good', amount: number) => {
     send({ type: WSMessageType.MARKET_BUY, payload: { playerId: player.id, itemId, itemType, amount } });
   };
 
-  const handleSell = (itemId: string, itemType: 'resource' | 'consumable', amount: number) => {
+  const handleSell = (itemId: string, itemType: 'resource' | 'consumable' | 'production_good', amount: number) => {
     send({ type: WSMessageType.MARKET_SELL, payload: { playerId: player.id, itemId, itemType, amount } });
   };
 
@@ -90,6 +92,14 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
             {t('auction.tabGoods')}
           </button>
           <button
+            onClick={() => setTab('pgGoods')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              tab === 'pgGoods' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            {t('auction.tabProductionGoods')}
+          </button>
+          <button
             onClick={() => setTab('recipes')}
             className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
               tab === 'recipes' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-300'
@@ -114,6 +124,17 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           resources={resources}
           recipes={recipes}
           market={market}
+          pgDefs={pgDefs}
+          onBuy={handleBuy}
+          onSell={handleSell}
+        />
+      )}
+
+      {tab === 'pgGoods' && market && (
+        <ProductionGoodsTab
+          player={player}
+          market={market}
+          pgDefs={pgDefs}
           onBuy={handleBuy}
           onSell={handleSell}
         />
@@ -189,15 +210,17 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
 
 // === Goods Tab ===
 
-function GoodsTab({ player, resources, recipes, market, onBuy, onSell }: {
+function GoodsTab({ player, resources, recipes, market, pgDefs, onBuy, onSell }: {
   player: Player;
   resources: Resource[];
   recipes: Recipe[];
   market: MarketState;
-  onBuy: (itemId: string, itemType: 'resource' | 'consumable', amount: number) => void;
-  onSell: (itemId: string, itemType: 'resource' | 'consumable', amount: number) => void;
+  pgDefs: Map<string, ProductionGoodDefinition>;
+  onBuy: (itemId: string, itemType: 'resource' | 'consumable' | 'production_good', amount: number) => void;
+  onSell: (itemId: string, itemType: 'resource' | 'consumable' | 'production_good', amount: number) => void;
 }) {
   const { t } = useLocale();
+  const marketInfoLevel = getActiveBonus(player, 'market_info', pgDefs);
 
   // Group consumables by tier, sorted by name within each tier
   const consumablesByTier = useMemo(() => {
@@ -244,6 +267,7 @@ function GoodsTab({ player, resources, recipes, market, onBuy, onSell }: {
                 supply={entry.supply}
                 price={entry.price}
                 cash={player.cash}
+                consumptionRate={marketInfoLevel >= 1 ? entry.baseConsumptionRate : undefined}
                 onBuy={amount => onBuy(res.id, 'resource', amount)}
                 onSell={amount => onSell(res.id, 'resource', amount)}
               />
@@ -288,6 +312,7 @@ function GoodsTab({ player, resources, recipes, market, onBuy, onSell }: {
                           supply={entry.supply}
                           price={entry.price}
                           cash={player.cash}
+                          consumptionRate={marketInfoLevel >= 1 ? entry.baseConsumptionRate : undefined}
                           onBuy={amount => onBuy(recipe.id, 'consumable', amount)}
                           onSell={amount => onSell(recipe.id, 'consumable', amount)}
                         />
@@ -319,12 +344,13 @@ function TradeColumnHeaders() {
   );
 }
 
-function TradeRow({ label, owned, supply, price, cash, onBuy, onSell }: {
+function TradeRow({ label, owned, supply, price, cash, consumptionRate, onBuy, onSell }: {
   label: React.ReactNode;
   owned: number;
   supply: number;
   price: number;
   cash: number;
+  consumptionRate?: number;
   onBuy: (amount: number) => void;
   onSell: (amount: number) => void;
 }) {
@@ -346,6 +372,11 @@ function TradeRow({ label, owned, supply, price, cash, onBuy, onSell }: {
       </div>
       <span className="text-xs text-gray-400 font-mono w-8 text-right shrink-0">{Math.floor(supply)}</span>
       <span className="text-xs text-green-400 font-mono w-12 text-right shrink-0">${roundedPrice}</span>
+      {consumptionRate !== undefined && (
+        <span className="text-[10px] text-orange-400 font-mono w-8 text-right shrink-0" title="Consumption/tick">
+          {consumptionRate > 0 ? consumptionRate.toFixed(1) : '-'}
+        </span>
+      )}
     </div>
   );
 }
@@ -559,6 +590,100 @@ function RightsTab({ player, resources, market, playerMap, maxSlots, onBuyRight 
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// === Production Goods Tab ===
+
+function ProductionGoodsTab({ player, market, pgDefs, onBuy, onSell }: {
+  player: Player;
+  market: MarketState;
+  pgDefs: Map<string, ProductionGoodDefinition>;
+  onBuy: (itemId: string, itemType: 'production_good', amount: number) => void;
+  onSell: (itemId: string, itemType: 'production_good', amount: number) => void;
+}) {
+  const { t } = useLocale();
+
+  // Group production goods by tier
+  const pgByTier = useMemo(() => {
+    const grouped: Record<number, { id: string; def: ProductionGoodDefinition }[]> = {};
+    for (const [itemId, entry] of Object.entries(market.productionGoods)) {
+      const def = pgDefs.get(itemId);
+      if (!def || !entry) continue;
+      (grouped[def.tier] ??= []).push({ id: itemId, def });
+    }
+    // Sort each tier by name
+    for (const items of Object.values(grouped)) {
+      items.sort((a, b) => t(`item.${a.id}`).localeCompare(t(`item.${b.id}`)));
+    }
+    return grouped;
+  }, [market.productionGoods, pgDefs, t]);
+
+  const hasPg = Object.keys(pgByTier).length > 0;
+  const tiers = [1, 2, 3, 4] as const;
+  const marketInfoLevel = getActiveBonus(player, 'market_info', pgDefs);
+
+  return (
+    <div className="flex flex-col gap-3 overflow-y-auto">
+      {!hasPg ? (
+        <p className="text-gray-600 text-sm">{t('auction.noItems')}</p>
+      ) : (
+        <>
+          <TradeColumnHeaders />
+          {tiers.map(tier => {
+            const items = pgByTier[tier];
+            if (!items || items.length === 0) return null;
+            return (
+              <div key={tier}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tierColorClass(tier)}`}>
+                    Tier {tier}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {items.map(({ id }) => {
+                    const entry = market.productionGoods[id];
+                    if (!entry) return null;
+                    // Owned count: total items for this id
+                    const ownedItems = player.productionGoods[id] ?? [];
+                    const ownedTotal = ownedItems.length;
+                    const unusedCount = ownedItems.filter(i => !i.isUsed).length;
+
+                    return (
+                      <div key={id}>
+                        <TradeRow
+                          label={
+                            <span className="flex items-center gap-2">
+                              <span className="text-amber-400 text-xs">&#9881;</span>
+                              <span className="text-white">{t(`item.${id}`)}</span>
+                            </span>
+                          }
+                          owned={ownedTotal}
+                          supply={entry.supply}
+                          price={entry.price}
+                          cash={player.cash}
+                          consumptionRate={marketInfoLevel >= 1 ? entry.baseConsumptionRate : undefined}
+                          onBuy={amount => onBuy(id, 'production_good', amount)}
+                          onSell={amount => {
+                            if (unusedCount <= 0) return;
+                            onSell(id, 'production_good', Math.min(amount, unusedCount));
+                          }}
+                        />
+                        {ownedTotal > 0 && unusedCount < ownedTotal && (
+                          <div className="text-[10px] text-gray-500 pl-7 mt-0.5">
+                            {ownedTotal - unusedCount}x {t('productionGood.notTradeable')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }

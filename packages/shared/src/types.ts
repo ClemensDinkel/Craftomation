@@ -47,6 +47,7 @@ export interface Player {
   name: string;
   resources: Record<string, number>;        // resourceId -> amount
   consumables: Record<string, number>;      // itemId -> amount
+  productionGoods: Record<string, ActiveProductionGood[]>; // itemId -> items
   knownRecipes: string[];                   // recipeIds
   patents: string[];
   cash: number;
@@ -96,6 +97,9 @@ export interface LabResult {
   recipeUnlocked?: Recipe;
   colorCoding?: LabColor[];
   similarity?: number;
+  distinctResourceCount?: number;                      // Notizbuch bonus
+  excludedResources?: string[];                        // Spektrometer bonus
+  directionHints?: ('left' | 'right' | null)[];        // Mikroskop bonus
 }
 
 // ==========================================
@@ -105,9 +109,40 @@ export interface LabResult {
 export interface Recipe {
   id: string;
   tier: 1 | 2 | 3 | 4;
-  type: 'consumable';
+  type: 'consumable' | 'production_good';
   sequence: string[];     // Array of Resource-IDs (length = tier + 2, min 3)
   // Display name & description resolved via i18n: tItemName(id), tItemDesc(id)
+}
+
+// ==========================================
+// Production Goods
+// ==========================================
+
+export type ProductionGoodBonusType =
+  | 'mining_boost'
+  | 'plantation_boost'
+  | 'craft_speed'
+  | 'lab_distinct_count'
+  | 'lab_direction'
+  | 'lab_exclusion'
+  | 'market_info'
+  | 'sabotage'
+  | 'sabotage_defense'
+  | 'patent_office';
+
+export interface ProductionGoodDefinition {
+  id: string;
+  tier: 1 | 2 | 3 | 4;
+  bonusType: ProductionGoodBonusType;
+  bonusValue: number;
+  module: string;
+  wearDurationMs: number;
+}
+
+export interface ActiveProductionGood {
+  itemId: string;
+  wearRemainingMs: number;
+  isUsed: boolean;        // true = activated at some point, no longer tradeable
 }
 
 // ==========================================
@@ -138,6 +173,7 @@ export interface MiningRight {
 export interface MarketState {
   resources: Record<string, MarketEntry>;
   consumables: Record<string, MarketEntry>;
+  productionGoods: Record<string, MarketEntry>;
   recipeListings: RecipeListing[];
   miningRights: Record<string, MiningRight[]>;  // resourceId -> rights (multiple slots)
 }
@@ -151,6 +187,7 @@ export interface GameState {
   players: Record<string, Player>;
   resources: Resource[];
   recipes: Recipe[];
+  productionGoodDefinitions: ProductionGoodDefinition[];
   market: MarketState;
   tick: number;
   running: boolean;

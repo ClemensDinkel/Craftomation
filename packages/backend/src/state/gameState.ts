@@ -7,6 +7,7 @@ import {
   Recipe,
   GameState,
   ModuleType,
+  ProductionGoodDefinition,
 } from '@craftomation/shared';
 
 const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
@@ -26,6 +27,7 @@ function createDefaultMarket(): MarketState {
   return {
     resources: {},
     consumables: {},
+    productionGoods: {},
     recipeListings: [],
     miningRights: {},
   };
@@ -36,6 +38,7 @@ class GameStateManager {
   private players: Map<string, Player> = new Map();
   private resources: Resource[] = [];
   private recipes: Recipe[] = [];
+  private productionGoodDefs: ProductionGoodDefinition[] = [];
   private market: MarketState = createDefaultMarket();
   private gameTick: number = 0;
   private gameStarted: boolean = false;
@@ -74,6 +77,7 @@ class GameStateManager {
     this.players.clear();
     this.resources = [];
     this.recipes = [];
+    this.productionGoodDefs = [];
     this.market = createDefaultMarket();
     this.gameTick = 0;
     this.gameStarted = false;
@@ -113,6 +117,14 @@ class GameStateManager {
 
   getRecipes(): Recipe[] {
     return this.recipes;
+  }
+
+  setProductionGoodDefinitions(defs: ProductionGoodDefinition[]): void {
+    this.productionGoodDefs = defs;
+  }
+
+  getProductionGoodDefinitions(): ProductionGoodDefinition[] {
+    return this.productionGoodDefs;
   }
 
   // Market
@@ -182,6 +194,7 @@ class GameStateManager {
       players: Object.fromEntries(this.players),
       resources: this.resources,
       recipes: this.recipes,
+      productionGoodDefinitions: this.productionGoodDefs,
       market: this.market,
       tick: this.gameTick,
       running: this.gameStarted,
@@ -191,12 +204,25 @@ class GameStateManager {
 
   loadFromSnapshot(state: GameState): void {
     this.config = state.session;
-    this.players = new Map(Object.entries(state.players));
     this.resources = state.resources;
     this.recipes = state.recipes;
-    this.market = state.market;
+    this.productionGoodDefs = state.productionGoodDefinitions ?? [];
     this.gameTick = state.tick;
     this.gameStarted = false; // Always start paused after load
+
+    // Migrate market: add productionGoods if missing
+    this.market = state.market;
+    if (!this.market.productionGoods) {
+      this.market.productionGoods = {};
+    }
+
+    // Migrate players: add productionGoods if missing
+    this.players = new Map(
+      Object.entries(state.players).map(([id, p]) => [
+        id,
+        { ...p, productionGoods: p.productionGoods ?? {} },
+      ]),
+    );
   }
 }
 

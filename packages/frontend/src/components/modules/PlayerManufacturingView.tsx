@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, ManufacturingJob } from '@craftomation/shared';
-import { Button, Dialog } from '@/components/ui';
+import { Button, Dialog, ProductionGoodBadge } from '@/components/ui';
+import { useProductionGoodDefs } from '@/hooks/useProductionGoods';
 
 interface Props {
   player: Player;
@@ -19,6 +20,7 @@ export function PlayerManufacturingView({ player, resources, recipes, gameSpeed,
   const { t } = useLocale();
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
+  const pgDefs = useProductionGoodDefs();
 
   const knownRecipes = useMemo(() => {
     const known = new Set(player.knownRecipes);
@@ -90,6 +92,7 @@ export function PlayerManufacturingView({ player, resources, recipes, gameSpeed,
         onClose={() => setInventoryOpen(false)}
         player={player}
         resourceMap={resourceMap}
+        pgDefs={pgDefs}
       />
 
       {/* Debug Dialog */}
@@ -252,6 +255,9 @@ function RecipeRow({ recipe, resourceMap, repeatActive, onAdd, onRepeat }: {
     <div className="flex items-center gap-2 rounded-lg border border-gray-700/50 bg-gray-800/60 px-3 py-2">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
+          {recipe.type === 'production_good' && (
+            <span className="text-amber-400 text-xs" title="Production Good">&#9881;</span>
+          )}
           <span className="text-white text-sm truncate">{t(`item.${recipe.id}`)}</span>
           <TierBadge tier={recipe.tier} />
         </div>
@@ -311,16 +317,18 @@ function TierBadge({ tier }: { tier: number }) {
   );
 }
 
-function InventoryDialog({ open, onClose, player, resourceMap }: {
+function InventoryDialog({ open, onClose, player, resourceMap, pgDefs }: {
   open: boolean;
   onClose: () => void;
   player: Player;
   resourceMap: Record<string, Resource>;
+  pgDefs: Map<string, import('@craftomation/shared').ProductionGoodDefinition>;
 }) {
   const { t } = useLocale();
 
   const resourceEntries = Object.entries(player.resources).filter(([, v]) => v > 0);
   const consumableEntries = Object.entries(player.consumables).filter(([, v]) => v > 0);
+  const pgEntries = Object.entries(player.productionGoods).filter(([, items]) => items.length > 0);
 
   return (
     <Dialog open={open} onClose={onClose} title={t('manufacturing.inventory')}>
@@ -369,6 +377,22 @@ function InventoryDialog({ open, onClose, player, resourceMap }: {
             </div>
           )}
         </div>
+
+        {/* Production Goods */}
+        {pgEntries.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-gray-400 mb-1">{t('manufacturing.productionGoods')}</h4>
+            <div className="flex flex-col gap-1.5">
+              {pgEntries.map(([itemId, items]) => {
+                const def = pgDefs.get(itemId);
+                if (!def) return null;
+                return items.map((item, i) => (
+                  <ProductionGoodBadge key={`${itemId}-${i}`} item={item} definition={def} compact />
+                ));
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </Dialog>
   );
