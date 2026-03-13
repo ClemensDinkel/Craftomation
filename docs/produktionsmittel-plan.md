@@ -103,6 +103,33 @@
 
 ---
 
+## Markt-Verbrauchsrate (aktualisiert)
+
+Die Consumption Rate wurde angepasst um mit dem steigenden Produktionspotenzial durch Produktionsmittel mitzuhalten.
+
+**Formel (Rohstoffe):**
+```
+consumption = (playerCount / resourceTypeCount) × 1.2 × consumptionRate × (1 + tick × 0.01)
+```
+
+**Senken im Überblick:**
+- **Markt-Consumption:** Automatischer NPC-Verbrauch (obige Formel)
+- **Crafting:** Spieler verbrauchen Rohstoffe zum Herstellen von Gütern (steigt mit Tiers und Craftspeed-Boni)
+- **Lab:** Spieler verbrauchen Rohstoffe beim Experimentieren (nicht alle Spieler experimentieren — viele kaufen Rezepte)
+- **Verschleiß-Nachproduktion:** Spieler müssen Produktionsmittel ständig ersetzen
+
+**Richtwerte (6 Spieler, 6 Rohstoffe, pro Rohstofftyp pro 10s-Tick):**
+
+| Minute | Tick | Consumption | Produktion | Crafting-Senke | Balance |
+|---|---|---|---|---|---|
+| 0 | 0 | 1.2 | ~1 | ~0 | knapp |
+| 15 | 90 | 2.28 | ~3 | ~1 | ausgeglichen |
+| 30 | 180 | 3.36 | ~5 | ~3 | knapp |
+| 45 | 270 | 4.44 | ~7 | ~5 | eng |
+| 60 | 360 | 5.52 | ~10 | ~7 | eng |
+
+---
+
 ## Offene Entscheidungen
 
 - [x] ~~Können Produktionsmittel am Markt gehandelt werden?~~ → Ja, aber nur **unbenutzte** Items (Verschleiß-Timer nicht gestartet)

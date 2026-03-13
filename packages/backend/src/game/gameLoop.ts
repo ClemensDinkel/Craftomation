@@ -187,7 +187,7 @@ function processMarketConsumption(): void {
   const config = gameState.getConfig()!;
   const tick = gameState.getTick();
   const market = gameState.getMarket();
-  const timeMultiplier = 1 + tick * 0.001;
+  const timeMultiplier = 1 + tick * 0.01;
 
   for (const entry of Object.values(market.resources)) {
     const consumption = entry.baseConsumptionRate * config.consumptionRate * timeMultiplier;
