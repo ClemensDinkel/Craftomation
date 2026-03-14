@@ -189,10 +189,10 @@ export function handleMarketSell(
     const config = gameState.getConfig();
     const playerCount = config?.playerCount ?? 4;
     const tierFactor: Record<number, number> = {
-      1: 0.5,
-      2: 0.35,
-      3: 0.2,
-      4: 0.12,
+      1: 0.3,
+      2: 0.2,
+      3: 0.15,
+      4: 0.1,
     };
     const factor = tierFactor[tier] ?? 0.3;
     entry.baseConsumptionRate = playerCount * factor;

@@ -8,8 +8,8 @@ const ECONOMY_TICK_INTERVAL = 5;  // economy runs every 5 sub-ticks = 10 seconds
 const MINE_BASE_INTERVAL_MS = 10_000; // base: 1 resource every 10s
 
 const RESOURCE_REFERENCE_SUPPLY = 100;
-const CONSUMABLE_REFERENCE_SUPPLY = 15;
-const PRODUCTION_GOOD_REFERENCE_SUPPLY = 10;
+const CONSUMABLE_REFERENCE_SUPPLY = 10;
+const PRODUCTION_GOOD_REFERENCE_SUPPLY = 5;
 
 let loopTimer: NodeJS.Timeout | null = null;
 let subTickCount = 0;
