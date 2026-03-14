@@ -1,15 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
-import { Button } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
+import { getDeviceId } from '@/utils/deviceId';
+import type { ModuleType } from '@craftomation/shared';
 
 const API_BASE = `http://${window.location.hostname}:3001`;
 
+const MODULE_OPTIONS: { value: ModuleType; labelKey: string }[] = [
+  { value: 'mine', labelKey: 'module.mine' },
+  { value: 'manufacturing', labelKey: 'module.manufacturing' },
+  { value: 'lab', labelKey: 'module.lab' },
+  { value: 'auction', labelKey: 'module.auction' },
+];
+
 export function HostMenu() {
   const { t } = useLocale();
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const [error, setError] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [rejoinModule, setRejoinModule] = useState<ModuleType>('mine');
 
   // Check if a game is already running on this server
   useEffect(() => {
@@ -17,14 +27,35 @@ export function HostMenu() {
       try {
         const res = await fetch(`${API_BASE}/api/session/active`);
         const data = await res.json();
-        if (data.active) setActiveSession(data.sessionId);
+        if (data.active) {
+          setActiveSession(data.sessionId);
+          // Check if this device already has a module assigned
+          const joinRes = await fetch(`${API_BASE}/api/session/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: data.sessionId, deviceId: getDeviceId() }),
+          });
+          if (joinRes.ok) {
+            const joinData = await joinRes.json();
+            if (joinData.assignedModule) {
+              setRejoinModule(joinData.assignedModule);
+            }
+          }
+        }
       } catch { /* server not reachable */ }
     })();
   }, []);
 
-  function handleRejoin() {
+  async function handleRejoin() {
     if (!activeSession) return;
+    // Register module for this device
+    await fetch(`${API_BASE}/api/session/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: activeSession, moduleType: rejoinModule, deviceId: state.deviceId }),
+    }).catch(() => {});
     dispatch({ type: 'SET_SESSION', sessionId: activeSession, isHost: true });
+    dispatch({ type: 'SET_MODULE', moduleType: rejoinModule });
     dispatch({ type: 'SET_ALIAS', alias: 'host' });
     dispatch({ type: 'NAVIGATE', view: 'game' });
   }
@@ -70,12 +101,20 @@ export function HostMenu() {
       )}
       <div className="flex-1 flex flex-col gap-3 px-4 pb-4">
         {activeSession && (
-          <button
-            onClick={handleRejoin}
-            className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-2xl font-semibold transition-colors"
-          >
-            {t('hostMenu.rejoin')}
-          </button>
+          <div className="flex-1 flex flex-col gap-2">
+            <button
+              onClick={handleRejoin}
+              className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-2xl font-semibold transition-colors"
+            >
+              {t('hostMenu.rejoin')}
+            </button>
+            <Select
+              options={MODULE_OPTIONS.map(m => ({ value: m.value, label: t(m.labelKey) }))}
+              value={rejoinModule}
+              onChange={e => setRejoinModule(e.target.value as ModuleType)}
+              className="text-sm"
+            />
+          </div>
         )}
         <button
           onClick={handleNewGame}

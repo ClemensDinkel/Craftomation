@@ -41,6 +41,8 @@ router.post('/join', (req: Request, res: Response) => {
     gameState.setClientModule(clientKey, moduleType);
   }
 
+  console.log(`[Join] clientKey=${clientKey} module=${moduleType ?? '(none)'} allModules=${JSON.stringify(gameState.getAssignedModulesWithClients())}`);
+
   const config = gameState.getConfig();
   const existingModule = gameState.getClientModule(clientKey);
   res.json({
@@ -161,10 +163,10 @@ router.get<{ id: string }>('/:id/modules', (req, res) => {
     return;
   }
 
-  res.json({
-    modules: gameState.getAssignedModules(),
-    clients: gameState.getAssignedModulesWithClients(),
-  });
+  const modules = gameState.getAssignedModules();
+  const clients = gameState.getAssignedModulesWithClients();
+  console.log(`[Modules] session=${id} modules=${JSON.stringify(modules)} clients=${JSON.stringify(clients)}`);
+  res.json({ modules, clients });
 });
 
 // GET /api/session/:id/status

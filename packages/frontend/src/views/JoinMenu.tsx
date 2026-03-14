@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Button, Input, Select } from '@/components/ui';
@@ -27,21 +27,53 @@ export function JoinMenu() {
   const [moduleType, setModuleType] = useState<ModuleType>('mine');
   const [alias, setAlias] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [takenModules, setTakenModules] = useState<Set<string>>(new Set());
+  const userManuallySelected = useRef(false);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
 
-  // Auto-select first untaken module when session ID is complete
+  // Check if a game is already running on this server
   useEffect(() => {
-    if (sessionId.length < 6) return;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/session/${sessionId}/modules`);
-        if (!res.ok) return;
+        const res = await fetch(`${API_BASE}/api/session/active`);
         const data = await res.json();
-        const taken = new Set<string>(data.modules ?? []);
+        if (data.active) {
+          setActiveSession(data.sessionId);
+        }
+      } catch { /* server not reachable */ }
+    })();
+  }, []);
+
+  function handleRejoin() {
+    if (!activeSession) return;
+    // Pre-fill session ID to trigger module fetching
+    setSessionId(activeSession);
+  }
+
+  const fetchModules = useCallback(async () => {
+    if (sessionId.length < 6) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/session/${sessionId}/modules`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const taken = new Set<string>(data.modules ?? []);
+      setTakenModules(taken);
+      // Only auto-select if user hasn't manually chosen
+      if (!userManuallySelected.current) {
         const firstFree = MODULE_OPTIONS.find(m => !taken.has(m.value));
         if (firstFree) setModuleType(firstFree.value);
-      } catch { /* ignore */ }
-    })();
+      }
+    } catch { /* ignore */ }
   }, [sessionId]);
+
+  // Poll for taken modules every 3 seconds while session ID is valid
+  useEffect(() => {
+    if (sessionId.length < 6) return;
+    userManuallySelected.current = false;
+    fetchModules();
+    const timer = setInterval(fetchModules, 3000);
+    return () => clearInterval(timer);
+  }, [sessionId, fetchModules]);
 
   async function handleJoin() {
     try {
@@ -84,6 +116,15 @@ export function JoinMenu() {
           </div>
         )}
 
+        {activeSession && !sessionId && (
+          <button
+            onClick={handleRejoin}
+            className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white text-lg font-semibold py-3 transition-colors"
+          >
+            {t('joinMenu.rejoin')} ({activeSession})
+          </button>
+        )}
+
         <Input
           id="sessionId"
           label={t('joinMenu.sessionId')}
@@ -98,8 +139,14 @@ export function JoinMenu() {
           id="module"
           label={t('joinMenu.module')}
           value={moduleType}
-          onChange={e => setModuleType(e.target.value as ModuleType)}
-          options={MODULE_OPTIONS.map(m => ({ value: m.value, label: t(m.labelKey) }))}
+          onChange={e => {
+            userManuallySelected.current = true;
+            setModuleType(e.target.value as ModuleType);
+          }}
+          options={MODULE_OPTIONS.map(m => ({
+            value: m.value,
+            label: takenModules.has(m.value) ? `${t(m.labelKey)} (${t('joinMenu.taken')})` : t(m.labelKey),
+          }))}
         />
 
         <Input

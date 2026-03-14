@@ -47,6 +47,7 @@ class GameStateManager {
   private gameStarted: boolean = false;
   private connectedClients: Map<string, WebSocket> = new Map();
   private clientModules: Map<string, ModuleType> = new Map();
+  private clientLastSeen: Map<string, number> = new Map();
 
   hasSession(): boolean {
     return this.config !== null;
@@ -86,6 +87,7 @@ class GameStateManager {
     this.gameStarted = false;
     this.connectedClients.clear();
     this.clientModules.clear();
+    this.clientLastSeen.clear();
   }
 
   // Players
@@ -177,21 +179,42 @@ class GameStateManager {
   // Client module assignments
   setClientModule(clientId: string, moduleType: ModuleType): void {
     this.clientModules.set(clientId, moduleType);
+    this.clientLastSeen.set(clientId, Date.now());
+  }
+
+  touchClient(clientId: string): void {
+    this.clientLastSeen.set(clientId, Date.now());
   }
 
   getClientModule(clientId: string): ModuleType | undefined {
     return this.clientModules.get(clientId);
   }
 
+  /** Check if a client is still active (connected via WS or seen recently) */
+  private isClientActive(clientId: string): boolean {
+    // Connected via WebSocket → always active
+    if (this.connectedClients.has(clientId)) return true;
+    // Seen via heartbeat within last 15 seconds
+    const lastSeen = this.clientLastSeen.get(clientId);
+    if (lastSeen && Date.now() - lastSeen < 15_000) return true;
+    return false;
+  }
+
   getAssignedModules(): ModuleType[] {
-    return Array.from(this.clientModules.values());
+    return Array.from(this.clientModules.entries())
+      .filter(([clientId]) => this.isClientActive(clientId))
+      .map(([, moduleType]) => moduleType);
   }
 
   getAssignedModulesWithClients(): { clientId: string; moduleType: ModuleType }[] {
-    return Array.from(this.clientModules.entries()).map(([clientId, moduleType]) => ({
-      clientId,
-      moduleType,
-    }));
+    return Array.from(this.clientModules.entries())
+      .filter(([clientId]) => this.isClientActive(clientId))
+      .map(([clientId, moduleType]) => ({ clientId, moduleType }));
+  }
+
+  removeClientModule(clientId: string): void {
+    this.clientModules.delete(clientId);
+    this.clientLastSeen.delete(clientId);
   }
 
   // Serialization

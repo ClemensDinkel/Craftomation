@@ -12,6 +12,13 @@ export function WaitingScreen() {
   const pollStatus = useCallback(async () => {
     if (!state.sessionId) return;
     try {
+      // Heartbeat: re-register module so backend knows we're still alive
+      fetch(`${API_BASE}/api/session/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: state.sessionId, moduleType: state.moduleType, deviceId: state.deviceId }),
+      }).catch(() => {});
+
       const res = await fetch(`${API_BASE}/api/session/${state.sessionId}/status`);
       if (res.ok) {
         const data = await res.json();
@@ -20,7 +27,7 @@ export function WaitingScreen() {
         }
       }
     } catch { /* ignore */ }
-  }, [state.sessionId, dispatch]);
+  }, [state.sessionId, state.moduleType, state.deviceId, dispatch]);
 
   useEffect(() => {
     pollStatus();

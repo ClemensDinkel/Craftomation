@@ -53,24 +53,24 @@ export function Setup() {
   const fetchModules = useCallback(async () => {
     if (!state.sessionId) return;
     try {
+      // Heartbeat: re-register host module so backend knows we're still here
+      fetch(`${API_BASE}/api/session/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: state.sessionId, moduleType: hostModule, deviceId: state.deviceId }),
+      }).catch(() => {});
+
       const res = await fetch(`${API_BASE}/api/session/${state.sessionId}/modules`);
       if (res.ok) {
         const data = await res.json();
-        setClientModules(data.modules);
-        setClientDevices(data.clients ?? []);
+        const allClients: { clientId: string; moduleType: ModuleType }[] = data.clients ?? [];
+        // Filter out the host's own device from client list
+        const otherClients = allClients.filter(c => c.clientId !== state.deviceId);
+        setClientModules(otherClients.map(c => c.moduleType));
+        setClientDevices(otherClients);
       }
     } catch { /* ignore */ }
-  }, [state.sessionId]);
-
-  // Register host module on backend so joiners can see it's taken
-  useEffect(() => {
-    if (!state.sessionId) return;
-    fetch(`${API_BASE}/api/session/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: state.sessionId, moduleType: hostModule, alias: '__host__' }),
-    }).catch(() => {});
-  }, [state.sessionId, hostModule]);
+  }, [state.sessionId, state.deviceId, hostModule]);
 
   // Poll for connected client modules every 5 seconds
   useEffect(() => {

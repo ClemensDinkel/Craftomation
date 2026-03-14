@@ -1,10 +1,13 @@
 const STORAGE_KEY = 'craftomation_device_id';
 
 export function getDeviceId(): string {
-  let id = localStorage.getItem(STORAGE_KEY);
+  // Use sessionStorage so each browser tab gets its own unique device ID.
+  // This survives page reloads (for rejoin) but is unique per tab,
+  // which is important when multiple clients run on the same machine.
+  let id = sessionStorage.getItem(STORAGE_KEY);
   if (!id) {
     id = crypto.randomUUID();
-    localStorage.setItem(STORAGE_KEY, id);
+    sessionStorage.setItem(STORAGE_KEY, id);
   }
   return id;
 }

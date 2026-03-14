@@ -21,6 +21,8 @@ export const en: Record<string, string> = {
   'joinMenu.alias': 'Alias (optional)',
   'joinMenu.aliasPlaceholder': 'Your name',
   'joinMenu.join': 'Join',
+  'joinMenu.taken': 'taken',
+  'joinMenu.rejoin': 'Rejoin Running Game',
 
   // Setup
   'setup.title': 'Game Configuration',
