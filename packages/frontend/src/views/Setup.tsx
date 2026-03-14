@@ -7,7 +7,11 @@ import type { ModuleType } from '@craftomation/shared';
 
 const API_BASE = `http://${window.location.hostname}:3001`;
 
-const OPTIONAL_MODULES: { value: ModuleType; labelKey: string }[] = [
+const ALL_MODULES: { value: ModuleType; labelKey: string }[] = [
+  { value: 'mine', labelKey: 'module.mine' },
+  { value: 'manufacturing', labelKey: 'module.manufacturing' },
+  { value: 'lab', labelKey: 'module.lab' },
+  { value: 'auction', labelKey: 'module.auction' },
   { value: 'plantation', labelKey: 'module.plantation' },
   { value: 'patent_office', labelKey: 'module.patent_office' },
   { value: 'stockmarket', labelKey: 'module.stockmarket' },
@@ -16,6 +20,8 @@ const OPTIONAL_MODULES: { value: ModuleType; labelKey: string }[] = [
   { value: 'warehouse', labelKey: 'module.warehouse' },
 ];
 
+const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
+
 export function Setup() {
   const { t } = useLocale();
   const { state, dispatch } = useGame();
@@ -23,7 +29,6 @@ export function Setup() {
   const [gameSpeed, setGameSpeed] = useState(1.0);
   const [consumptionRate, setConsumptionRate] = useState(1.0);
   const [resourceTypes, setResourceTypes] = useState(6);
-  const [activeOptional, setActiveOptional] = useState<Set<ModuleType>>(new Set());
   const [hostModule, setHostModule] = useState<ModuleType>('mine');
   const [players, setPlayers] = useState<{ id: string; name: string }[]>([]);
   const [playerDialogOpen, setPlayerDialogOpen] = useState(false);
@@ -33,21 +38,14 @@ export function Setup() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
-
-  const requiredModules = useMemo(() => [
-    ...REQUIRED_MODULES,
-    ...Array.from(activeOptional),
-  ], [activeOptional]);
-
   const coveredModules = useMemo(() => {
     const all = [hostModule, ...clientModules];
     return new Set(all);
   }, [hostModule, clientModules]);
 
   const missingModules = useMemo(
-    () => requiredModules.filter(m => !coveredModules.has(m)),
-    [requiredModules, coveredModules],
+    () => REQUIRED_MODULES.filter(m => !coveredModules.has(m)),
+    [coveredModules],
   );
 
   const fetchModules = useCallback(async () => {
@@ -85,18 +83,6 @@ export function Setup() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }
-
-  function toggleModule(mod: ModuleType) {
-    setActiveOptional(prev => {
-      const next = new Set(prev);
-      if (next.has(mod)) {
-        next.delete(mod);
-      } else {
-        next.add(mod);
-      }
-      return next;
-    });
   }
 
   async function addPlayer() {
@@ -143,10 +129,6 @@ export function Setup() {
             gameSpeed,
             consumptionRate,
             resourceTypeCount: resourceTypes,
-            activeModules: [
-              'mine', 'manufacturing', 'lab', 'auction',
-              ...Array.from(activeOptional),
-            ],
           },
         }),
       });
@@ -207,16 +189,12 @@ export function Setup() {
             <div className="flex items-center gap-3 rounded-lg border border-indigo-600/50 bg-indigo-900/20 px-3 py-2">
               <span className="text-white font-medium flex-1">{t('setup.host')}</span>
               <Select
-                options={[
-                  ...(['mine', 'manufacturing', 'lab', 'auction'] as ModuleType[]).map(m => ({
-                    value: m,
-                    label: t(`module.${m}`),
-                  })),
-                  ...Array.from(activeOptional).map(m => ({
-                    value: m,
-                    label: t(`module.${m}`),
-                  })),
-                ]}
+                options={ALL_MODULES.map(m => ({
+                  value: m.value,
+                  label: clientModules.includes(m.value)
+                    ? `${t(m.labelKey)} (${t('joinMenu.taken')})`
+                    : t(m.labelKey),
+                }))}
                 value={hostModule}
                 onChange={e => setHostModule(e.target.value as ModuleType)}
                 className="text-sm"
@@ -310,27 +288,6 @@ export function Setup() {
             step={1}
             onChange={setResourceTypes}
           />
-        </Card>
-
-        {/* Optional Modules */}
-        <Card>
-          <h2 className="text-sm font-medium text-gray-400 mb-3">{t('setup.optionalModules')}</h2>
-          <div className="grid grid-cols-2 gap-2">
-            {OPTIONAL_MODULES.map(mod => (
-              <label
-                key={mod.value}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700/50 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={activeOptional.has(mod.value)}
-                  onChange={() => toggleModule(mod.value)}
-                  className="rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500"
-                />
-                <span className="text-sm text-gray-200">{t(mod.labelKey)}</span>
-              </label>
-            ))}
-          </div>
         </Card>
       </div>
 

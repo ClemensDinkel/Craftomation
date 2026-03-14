@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { WSMessageType } from '@craftomation/shared';
+import { WSMessageType, ModuleType } from '@craftomation/shared';
 import { createSession, sessionExists } from '../session/sessionManager';
 import { gameState } from '../state/gameState';
 import { loadLatestSave } from '../state/autoSave';
@@ -39,6 +39,16 @@ router.post('/join', (req: Request, res: Response) => {
 
   if (moduleType) {
     gameState.setClientModule(clientKey, moduleType);
+
+    // Late-join: if game is running and this module isn't active yet, activate it
+    if (gameState.isGameStarted()) {
+      const config = gameState.getConfig();
+      if (config && !config.activeModules.includes(moduleType)) {
+        const updatedModules = [...config.activeModules, moduleType];
+        gameState.updateConfig({ activeModules: updatedModules });
+        console.log(`[Join] Late-join activated module: ${moduleType}, activeModules now: ${JSON.stringify(updatedModules)}`);
+      }
+    }
   }
 
   console.log(`[Join] clientKey=${clientKey} module=${moduleType ?? '(none)'} allModules=${JSON.stringify(gameState.getAssignedModulesWithClients())}`);
@@ -134,6 +144,13 @@ router.post('/start', (req: Request, res: Response) => {
   // Derive playerCount from registered players
   const playerCount = Math.max(1, gameState.getAllPlayers().length);
   gameState.updateConfig({ playerCount });
+
+  // Derive activeModules from all assigned client modules
+  const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
+  const assignedModules = gameState.getAssignedModules();
+  const activeModules = [...new Set([...REQUIRED_MODULES, ...assignedModules])];
+  gameState.updateConfig({ activeModules });
+  console.log(`[Session] Active modules: ${JSON.stringify(activeModules)}`);
 
   // Run initial calculations
   const currentConfig = gameState.getConfig()!;
