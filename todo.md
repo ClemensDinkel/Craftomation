@@ -5,7 +5,6 @@
 - (keine offenen Aufgaben)
 
 ## bugs
-- fortschrittbalken in produktion hängt lange bei 100% bevor es weiter geht (läuft sehr schnell durch ?)
 - preise springen bei konsumgütern: 2 verkauft, -> preis 90 wenig später (nächster eco tick?) 60, wenn durch verbauch nur noch 1 wieder 120
 - wenn produktion in auftrag wo ressoure fehlt und dann autokauf, dann passiert nichts, erst wenn neue produktion angestoßen wird funktioniert autokauf
 - verbrauch Marktbericht ? wird im markt als verkaufbar angezeigt, aber lässt sich nicht verkaufen

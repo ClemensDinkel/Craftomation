@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
 import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
 import { handleLabExperiment } from '../handlers/labHandler';
-import { handleMarketBuy, handleMarketSell, handleListRecipe, handleBuyRecipe, handleBuyMiningRight, handleSetAutoTradeRule, handleRemoveAutoTradeRule } from '../handlers/auctionHandler';
+import { handleMarketBuy, handleMarketSell, handleListRecipe, handleBuyRecipe, handleBuyMiningRight, handleSetAutoTradeRule, handleRemoveAutoTradeRule, handleDebugSetInventory } from '../handlers/auctionHandler';
 import url from 'url';
 
 let wss: WebSocketServer;
@@ -83,6 +83,9 @@ function handleMessage(clientId: string, message: WSMessage): void {
       break;
     case WSMessageType.DEBUG_UNLOCK_RECIPE:
       handleDebugUnlockRecipe(message.payload as { playerId: string; recipeId: string });
+      break;
+    case WSMessageType.DEBUG_SET_INVENTORY:
+      handleDebugSetInventory(message.payload as { playerId: string; itemId: string; itemType: 'resource' | 'consumable' | 'production_good' | 'cash'; amount: number });
       break;
     case WSMessageType.LAB_EXPERIMENT: {
       const result = handleLabExperiment(clientId, message.payload as { playerId: string; sequence: string[] });

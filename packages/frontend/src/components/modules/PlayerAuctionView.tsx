@@ -15,7 +15,7 @@ interface Props {
   onBack: () => void;
 }
 
-type Tab = 'goods' | 'recipes' | 'rights' | 'pgGoods' | 'autoTrade';
+type Tab = 'goods' | 'recipes' | 'rights' | 'pgGoods' | 'autoTrade' | 'debug';
 
 export function PlayerAuctionView({ player, players, resources, recipes, market, send, onBack }: Props) {
   const { t } = useLocale();
@@ -49,6 +49,10 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
 
   const handleRemoveAutoTradeRule = (ruleId: string) => {
     send({ type: WSMessageType.REMOVE_AUTO_TRADE_RULE, payload: { playerId: player.id, ruleId } });
+  };
+
+  const handleDebugSetInventory = (itemId: string, itemType: 'resource' | 'consumable' | 'production_good' | 'cash', amount: number) => {
+    send({ type: WSMessageType.DEBUG_SET_INVENTORY, payload: { playerId: player.id, itemId, itemType, amount } });
   };
 
   const handleBuyRecipe = (listingId: string) => {
@@ -131,6 +135,14 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           >
             {t('auction.tabAutoTrade')}
           </button>
+          <button
+            onClick={() => setTab('debug')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              tab === 'debug' ? 'bg-red-900 text-red-300' : 'text-red-500/60 hover:text-red-400'
+            }`}
+          >
+            Debug
+          </button>
         </div>
       </div>
 
@@ -176,6 +188,16 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
           pgDefs={pgDefs}
           onSetRule={handleSetAutoTradeRule}
           onRemoveRule={handleRemoveAutoTradeRule}
+        />
+      )}
+
+      {tab === 'debug' && (
+        <DebugTab
+          player={player}
+          resources={resources}
+          recipes={recipes}
+          pgDefs={pgDefs}
+          onSetInventory={handleDebugSetInventory}
         />
       )}
 
@@ -917,6 +939,150 @@ function AutoTradeTab({ player, resources, recipes, market, pgDefs, onSetRule, o
           </div>
         </div>
       </Dialog>
+    </div>
+  );
+}
+
+// === Debug Tab ===
+
+function DebugTab({ player, resources, recipes, pgDefs, onSetInventory }: {
+  player: Player;
+  resources: Resource[];
+  recipes: Recipe[];
+  pgDefs: Map<string, ProductionGoodDefinition>;
+  onSetInventory: (itemId: string, itemType: 'resource' | 'consumable' | 'production_good' | 'cash', amount: number) => void;
+}) {
+  const { t } = useLocale();
+
+  const consumableRecipes = useMemo(
+    () => recipes.filter(r => r.type === 'consumable').sort((a, b) => a.tier - b.tier || t(`item.${a.id}`).localeCompare(t(`item.${b.id}`))),
+    [recipes, t],
+  );
+
+  const pgDefList = useMemo(
+    () => Array.from(pgDefs.values()).sort((a, b) => a.tier - b.tier || t(`item.${a.id}`).localeCompare(t(`item.${b.id}`))),
+    [pgDefs, t],
+  );
+
+  return (
+    <div className="flex flex-col gap-5 overflow-y-auto">
+      <div className="rounded-lg border border-red-800/50 bg-red-950/30 px-3 py-2">
+        <p className="text-red-400 text-xs font-medium">DEBUG — Spielervorrat direkt manipulieren</p>
+      </div>
+
+      {/* Cash */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-400 mb-2">Cash</h3>
+        <DebugRow
+          label={<span className="text-green-400 font-bold">$</span>}
+          name="Cash"
+          value={Math.floor(player.cash)}
+          onChange={v => onSetInventory('cash', 'cash', v)}
+        />
+      </section>
+
+      {/* Resources */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-400 mb-2">{t('auction.resources')}</h3>
+        <div className="flex flex-col gap-1">
+          {resources.map(res => (
+            <DebugRow
+              key={res.id}
+              label={
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white shrink-0"
+                  style={{ backgroundColor: res.color }}
+                >
+                  {res.initialLetter}
+                </span>
+              }
+              name={res.name}
+              value={Math.floor(player.resources[res.id] ?? 0)}
+              onChange={v => onSetInventory(res.id, 'resource', v)}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Consumables */}
+      {consumableRecipes.length > 0 && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">{t('auction.consumables')}</h3>
+          <div className="flex flex-col gap-1">
+            {consumableRecipes.map(recipe => (
+              <DebugRow
+                key={recipe.id}
+                label={<TierDot tier={recipe.tier} />}
+                name={t(`item.${recipe.id}`)}
+                value={Math.floor(player.consumables[recipe.id] ?? 0)}
+                onChange={v => onSetInventory(recipe.id, 'consumable', v)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Production Goods */}
+      {pgDefList.length > 0 && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">{t('auction.tabProductionGoods')}</h3>
+          <div className="flex flex-col gap-1">
+            {pgDefList.map(def => {
+              const items = player.productionGoods[def.id] ?? [];
+              return (
+                <DebugRow
+                  key={def.id}
+                  label={<TierDot tier={def.tier} />}
+                  name={t(`item.${def.id}`)}
+                  value={items.length}
+                  onChange={v => onSetInventory(def.id, 'production_good', v)}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function DebugRow({ label, name, value, onChange }: {
+  label: React.ReactNode;
+  name: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded bg-gray-800/60 px-2 py-1.5">
+      <span className="shrink-0">{label}</span>
+      <span className="flex-1 text-white text-sm truncate">{name}</span>
+      <span className="text-white font-mono text-sm w-10 text-right">{value}</span>
+      <div className="flex gap-1 shrink-0">
+        <button
+          onClick={() => onChange(Math.max(0, value - 10))}
+          className="px-1.5 py-0.5 text-xs rounded bg-red-900/60 text-red-300 hover:bg-red-800/60"
+        >
+          -10
+        </button>
+        <button
+          onClick={() => onChange(Math.max(0, value - 1))}
+          className="px-1.5 py-0.5 text-xs rounded bg-red-900/60 text-red-300 hover:bg-red-800/60"
+        >
+          -1
+        </button>
+        <button
+          onClick={() => onChange(value + 1)}
+          className="px-1.5 py-0.5 text-xs rounded bg-green-900/60 text-green-300 hover:bg-green-800/60"
+        >
+          +1
+        </button>
+        <button
+          onClick={() => onChange(value + 10)}
+          className="px-1.5 py-0.5 text-xs rounded bg-green-900/60 text-green-300 hover:bg-green-800/60"
+        >
+          +10
+        </button>
+      </div>
     </div>
   );
 }

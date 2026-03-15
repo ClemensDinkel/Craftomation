@@ -4,10 +4,14 @@ import { gameState } from '../state/gameState';
 import { broadcast, sendTo } from '../websocket/wsServer';
 import { activateProductionGood, getDefinition, getActiveBonus } from '../game/productionGoodUtils';
 
-const RESOURCE_REFERENCE_SUPPLY = 100;
-const CONSUMABLE_REFERENCE_SUPPLY = 15;
-const RESOURCE_BASE_PRICE = 5;
-const BASE_PRICES: Record<number, number> = { 1: 12, 2: 20, 3: 32, 4: 50 };
+import {
+  RESOURCE_REFERENCE_SUPPLY,
+  CONSUMABLE_REFERENCE_SUPPLY,
+  RESOURCE_BASE_PRICE,
+  BASE_PRICES,
+  PRODUCTION_GOOD_BASE_PRICES,
+  PRODUCTION_GOOD_REFERENCE_SUPPLY,
+} from '../game/marketConstants';
 
 const MINING_RIGHT_PRICE_MULTIPLIER = 20;
 const MINING_RIGHT_OVERBID_MULTIPLIER = 1.5;
@@ -27,13 +31,24 @@ function sendError(clientId: string, message: string): void {
 
 const SPREAD = 0.025; // 2.5% bid/ask spread
 
-/** Recalculate price for a market entry after supply changed. */
+/** Recalculate price for a market entry after supply changed.
+ *  Resources & consumables: exponential decay  price = basePrice * maxMultiplier^(1 - supply/refSupply)
+ *    → smooth curve from maxPrice (supply=0) to basePrice (supply=refSupply)
+ *  Production goods: sqrt curve (flatter scaling at low supply)
+ */
 function recalcPrice(entry: MarketEntry, basePrice: number, refSupply: number, maxMultiplier: number = 10, useSqrt: boolean = false): void {
-  // Use floored supply for price calculation so displayed price matches displayed supply
-  const ratio = refSupply / Math.max(Math.floor(entry.supply), 1);
-  // sqrt curve for production goods: flatter price scaling (±~8 per unit instead of ±30)
-  const raw = useSqrt ? basePrice * Math.sqrt(ratio) : basePrice * ratio;
-  entry.price = Math.min(basePrice * maxMultiplier, Math.max(1, Math.round(raw * 100) / 100));
+  let raw: number;
+  if (useSqrt) {
+    // Production goods: sqrt curve
+    const ratio = refSupply / Math.max(entry.supply, 0.5);
+    raw = basePrice * Math.sqrt(ratio);
+    raw = Math.min(basePrice * maxMultiplier, raw);
+  } else {
+    // Exponential decay: smooth price transitions at all supply levels
+    const exponent = Math.min(1, 1 - entry.supply / refSupply);
+    raw = basePrice * Math.pow(maxMultiplier, exponent);
+  }
+  entry.price = Math.max(1, Math.round(raw * 100) / 100);
 }
 
 /** Buy price = market price + spread */
@@ -46,8 +61,6 @@ function sellPrice(price: number): number {
   return Math.round(price * (1 - SPREAD) * 100) / 100;
 }
 
-const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = { 1: 15, 2: 30, 3: 60, 4: 120 };
-const PRODUCTION_GOOD_REFERENCE_SUPPLY = 10;
 
 export function handleMarketBuy(
   clientId: string,
@@ -442,6 +455,56 @@ export function handleRemoveAutoTradeRule(
 
   if (!player.autoTradeRules) return;
   player.autoTradeRules = player.autoTradeRules.filter(r => r.id !== ruleId);
+
+  gameState.setPlayer(playerId, player);
+  broadcastGameState();
+}
+
+export function handleDebugSetInventory(payload: {
+  playerId: string;
+  itemId: string;
+  itemType: 'resource' | 'consumable' | 'production_good' | 'cash';
+  amount: number;
+}): void {
+  const { playerId, itemId, itemType, amount } = payload;
+  const player = gameState.getPlayer(playerId);
+  if (!player) return;
+
+  const value = Math.max(0, Math.floor(amount));
+
+  switch (itemType) {
+    case 'resource':
+      player.resources[itemId] = value;
+      break;
+    case 'consumable':
+      player.consumables[itemId] = value;
+      break;
+    case 'production_good': {
+      const current = player.productionGoods[itemId] ?? [];
+      const unusedCount = current.filter(g => !g.isUsed).length;
+      const usedItems = current.filter(g => g.isUsed);
+      const targetUnused = Math.max(0, value - usedItems.length);
+      const currentUnused = current.filter(g => !g.isUsed);
+
+      if (targetUnused > unusedCount) {
+        // Add more unused items
+        const def = getDefinition(itemId);
+        const wear = def?.wearUses ?? 10;
+        for (let i = 0; i < targetUnused - unusedCount; i++) {
+          currentUnused.push({ itemId, wearRemaining: wear, isUsed: false });
+        }
+        player.productionGoods[itemId] = [...usedItems, ...currentUnused];
+      } else if (targetUnused < unusedCount) {
+        // Remove unused items from the end
+        const kept = currentUnused.slice(0, targetUnused);
+        player.productionGoods[itemId] = [...usedItems, ...kept];
+      }
+      break;
+    }
+    case 'cash':
+      player.cash = Math.max(0, amount);
+      break;
+  }
 
   gameState.setPlayer(playerId, player);
   broadcastGameState();

@@ -8,6 +8,7 @@ import {
   RawElement,
 } from '../data/csvLoader';
 import { PRODUCTION_GOOD_DEFINITIONS } from '../data/productionGoods';
+import { BASE_PRICES, RESOURCE_BASE_PRICE, PRODUCTION_GOOD_BASE_PRICES } from './marketConstants';
 
 const RESOURCE_COLORS = [
   '#E74C3C', // Red
@@ -22,14 +23,6 @@ const RESOURCE_COLORS = [
   '#3F51B5', // Indigo
 ];
 
-const BASE_PRICES: Record<number, number> = {
-  1: 12,
-  2: 20,
-  3: 32,
-  4: 50,
-};
-
-const RESOURCE_BASE_PRICE = 5;
 
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
@@ -140,13 +133,6 @@ function generateProductionGoodRecipes(resources: Resource[]): Recipe[] {
     sequence: randomSequence(resourceIds, def.tier + 2),
   }));
 }
-
-const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = {
-  1: 15,
-  2: 30,
-  3: 60,
-  4: 120,
-};
 
 // Step 3: Initialize market
 function initializeMarket(config: SessionConfig, resources: Resource[], recipes: Recipe[]): MarketState {

@@ -10,10 +10,9 @@ import {
   ProductionGoodDefinition,
 } from '@craftomation/shared';
 import { PRODUCTION_GOOD_DEFINITIONS } from '../data/productionGoods';
+import { PRODUCTION_GOOD_BASE_PRICES } from '../game/marketConstants';
 
 const REQUIRED_MODULES: ModuleType[] = ['mine', 'manufacturing', 'lab', 'auction'];
-
-const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = { 1: 15, 2: 30, 3: 60, 4: 120 };
 
 function createDefaultConfig(sessionId: string): SessionConfig {
   return {

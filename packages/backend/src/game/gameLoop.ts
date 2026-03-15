@@ -7,26 +7,17 @@ const SUB_TICK_MS = 2_000;        // fast tick: every 2 seconds
 const ECONOMY_TICK_INTERVAL = 5;  // economy runs every 5 sub-ticks = 10 seconds
 const MINE_BASE_INTERVAL_MS = 10_000; // base: 1 resource every 10s
 
-const RESOURCE_REFERENCE_SUPPLY = 100;
-const CONSUMABLE_REFERENCE_SUPPLY = 10;
-const PRODUCTION_GOOD_REFERENCE_SUPPLY = 5;
+import {
+  RESOURCE_REFERENCE_SUPPLY,
+  RESOURCE_BASE_PRICE,
+  CONSUMABLE_REFERENCE_SUPPLY,
+  PRODUCTION_GOOD_REFERENCE_SUPPLY,
+  BASE_PRICES,
+  PRODUCTION_GOOD_BASE_PRICES,
+} from './marketConstants';
 
 let loopTimer: NodeJS.Timeout | null = null;
 let subTickCount = 0;
-
-const BASE_PRICES: Record<number, number> = {
-  1: 12,
-  2: 20,
-  3: 32,
-  4: 50,
-};
-
-const PRODUCTION_GOOD_BASE_PRICES: Record<number, number> = {
-  1: 15,
-  2: 30,
-  3: 60,
-  4: 120,
-};
 
 // --- Mining ---
 
@@ -161,8 +152,8 @@ export function tryStartJob(player: Player, speed: number): boolean {
       for (let i = 0; i < amount; i++) {
         estimatedCost += Math.round(tempPrice * (1 + 0.025) * 100) / 100;
         tempSupply = Math.max(0, tempSupply - 1);
-        const ratio = RESOURCE_REFERENCE_SUPPLY / Math.max(Math.floor(tempSupply), 1);
-        tempPrice = Math.min(5 * 10, Math.max(1, Math.round(5 * ratio * 100) / 100));
+        const exponent = Math.min(1, 1 - tempSupply / RESOURCE_REFERENCE_SUPPLY);
+        tempPrice = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(10, exponent) * 100) / 100);
       }
       totalAutoBuyCost += estimatedCost;
       buyPlan.push({ resId, amount });
@@ -177,8 +168,8 @@ export function tryStartJob(player: Player, speed: number): boolean {
       for (let i = 0; i < amount; i++) {
         actualTotalCost += Math.round(entry.price * (1 + 0.025) * 100) / 100;
         entry.supply = Math.max(0, entry.supply - 1);
-        const ratio = RESOURCE_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1);
-        entry.price = Math.min(5 * 10, Math.max(1, Math.round(5 * ratio * 100) / 100));
+        const exponent = Math.min(1, 1 - entry.supply / RESOURCE_REFERENCE_SUPPLY);
+        entry.price = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(10, exponent) * 100) / 100);
       }
       player.resources[resId] = (player.resources[resId] ?? 0) + amount;
     }
@@ -305,25 +296,28 @@ function processPriceAdjustment(): void {
   const market = gameState.getMarket();
   const recipes = gameState.getRecipes();
 
+  // Resources: exponential decay curve
   for (const entry of Object.values(market.resources)) {
-    const basePrice = 5;
-    const newPrice = basePrice * (RESOURCE_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1));
-    entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
+    const exponent = Math.min(1, 1 - entry.supply / RESOURCE_REFERENCE_SUPPLY);
+    const newPrice = RESOURCE_BASE_PRICE * Math.pow(10, exponent);
+    entry.price = Math.max(1, Math.round(newPrice * 100) / 100);
   }
 
   for (const recipe of recipes) {
     if (recipe.type === 'consumable') {
+      // Consumables: exponential decay curve
       const basePrice = BASE_PRICES[recipe.tier];
       const entry = market.consumables[recipe.id];
       if (!entry) continue;
-      const newPrice = basePrice * (CONSUMABLE_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1));
-      entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
+      const exponent = Math.min(1, 1 - entry.supply / CONSUMABLE_REFERENCE_SUPPLY);
+      const newPrice = basePrice * Math.pow(10, exponent);
+      entry.price = Math.max(1, Math.round(newPrice * 100) / 100);
     } else {
+      // Production goods: sqrt curve (flatter scaling)
       const basePrice = PRODUCTION_GOOD_BASE_PRICES[recipe.tier];
       const entry = market.productionGoods[recipe.id];
       if (!entry) continue;
-      // sqrt curve for production goods: flatter price scaling
-      const ratio = PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(Math.floor(entry.supply), 1);
+      const ratio = PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(entry.supply, 0.5);
       const newPrice = basePrice * Math.sqrt(ratio);
       entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
     }
@@ -357,10 +351,10 @@ function processAutoTrade(players: Player[]): void {
             entry.supply = Math.max(0, entry.supply - 1);
             // Recalc price
             const isRes = rule.itemType === 'resource';
-            const basePrice = isRes ? 5 : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
+            const basePrice = isRes ? RESOURCE_BASE_PRICE : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
             const refSupply = isRes ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
-            const ratio = refSupply / Math.max(Math.floor(entry.supply), 1);
-            entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(basePrice * ratio * 100) / 100));
+            const exponent = Math.min(1, 1 - entry.supply / refSupply);
+            entry.price = Math.max(1, Math.round(basePrice * Math.pow(10, exponent) * 100) / 100);
             marketChanged = true;
             applyWear(player, 'auto_trade');
           }
@@ -373,10 +367,10 @@ function processAutoTrade(players: Player[]): void {
         if (owned >= 1) {
           entry.supply += 1;
           const isRes = rule.itemType === 'resource';
-          const basePrice = isRes ? 5 : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
+          const basePrice = isRes ? RESOURCE_BASE_PRICE : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
           const refSupply = isRes ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
-          const ratio = refSupply / Math.max(Math.floor(entry.supply), 1);
-          entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(basePrice * ratio * 100) / 100));
+          const exponent = Math.min(1, 1 - entry.supply / refSupply);
+          entry.price = Math.max(1, Math.round(basePrice * Math.pow(10, exponent) * 100) / 100);
           const revenue = Math.round(entry.price * (1 - 0.025) * 100) / 100;
           player.cash = Math.round((player.cash + revenue) * 100) / 100;
           inventory[rule.itemId] = (inventory[rule.itemId] ?? 0) - 1;

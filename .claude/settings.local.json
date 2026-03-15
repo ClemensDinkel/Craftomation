@@ -11,7 +11,8 @@
       "Bash(cd D:/Projects/Craftomation && npx -w @craftomation/frontend tsc --noEmit 2>&1)",
       "Bash(cd D:/Projects/Craftomation && npm run build -w @craftomation/shared 2>&1 | tail -3 && npm run build -w @craftomation/backend 2>&1 | tail -5 && npx -w @craftomation/frontend tsc --noEmit 2>&1)",
       "Bash(find /d/Projects/Craftomation/packages/frontend/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) 2>/dev/null | sort)",
-      "Bash(grep -n \"auction\\\\|Price\\\\|Preis\\\\|colPrice\" /d/Projects/Craftomation/packages/frontend/src/i18n/*.ts | head -30)"
+      "Bash(grep -n \"auction\\\\|Price\\\\|Preis\\\\|colPrice\" /d/Projects/Craftomation/packages/frontend/src/i18n/*.ts | head -30)",
+      "Bash(find:*)"
     ]
   }
 }
