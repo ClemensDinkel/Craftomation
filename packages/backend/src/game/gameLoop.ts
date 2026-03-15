@@ -259,21 +259,23 @@ function processManufacturing(players: Player[]): void {
   for (const player of players) {
     if (player.manufacturingQueue.length === 0) continue;
 
-    const front = player.manufacturingQueue[0];
+    let front = player.manufacturingQueue[0];
     if (!front.resourcesConsumed) {
       tryStartJob(player, speed);
-      continue;
+      continue; // just started — first tick comes next sub-tick
     }
 
     if (front.completed) continue;
 
-    // Manufacturing still uses the economy tick interval (10s)
-    front.remainingMs -= ECONOMY_TICK_INTERVAL * SUB_TICK_MS;
+    front.remainingMs -= SUB_TICK_MS;
 
     if (front.remainingMs <= 0) {
       front.completed = true;
       completeJob(player, speed);
-      tryStartJob(player, speed);
+      // Immediately start the next job (it will tick next sub-tick)
+      if (player.manufacturingQueue.length > 0) {
+        tryStartJob(player, speed);
+      }
     }
   }
 }
@@ -397,13 +399,13 @@ function processAutoTrade(players: Player[]): void {
 function processTick(): void {
   const players = gameState.getAllPlayers();
 
-  // Mining runs every sub-tick (2s) for responsive production
+  // Mining & manufacturing run every sub-tick (2s) for responsive production
   processMining(players);
+  processManufacturing(players);
 
   // Economy systems run every ECONOMY_TICK_INTERVAL sub-ticks (10s)
   const isEconomyTick = subTickCount % ECONOMY_TICK_INTERVAL === 0;
   if (isEconomyTick) {
-    processManufacturing(players);
     processAutoTrade(players);
     processMarketConsumption();
     processPriceAdjustment();
