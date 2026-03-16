@@ -40,6 +40,9 @@ export const en: Record<string, string> = {
   'setup.noClients': 'No other devices connected yet',
   'setup.host': 'Host (You)',
   'setup.missingModules': 'The following modules are not assigned to any device:',
+  'setup.connectionInfo': 'Connection Address',
+  'setup.connectionHint': 'Other devices open this address in their browser:',
+  'setup.copyLink': 'Copy',
   'setup.startGame': 'Start Game',
 
   // Waiting Screen

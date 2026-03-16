@@ -5,7 +5,7 @@ import { Button, Input, Select } from '@/components/ui';
 import { getDeviceId } from '@/utils/deviceId';
 import type { ModuleType } from '@craftomation/shared';
 
-const API_BASE = `http://${window.location.hostname}:3001`;
+import { API_BASE } from '@/utils/api';
 
 const MODULE_OPTIONS: { value: ModuleType; labelKey: string }[] = [
   { value: 'mine', labelKey: 'module.mine' },

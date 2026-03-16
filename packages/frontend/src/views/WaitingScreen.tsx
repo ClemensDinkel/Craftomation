@@ -3,7 +3,7 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Card, Spinner } from '@/components/ui';
 
-const API_BASE = `http://${window.location.hostname}:3001`;
+import { API_BASE } from '@/utils/api';
 
 export function WaitingScreen() {
   const { t } = useLocale();

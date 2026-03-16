@@ -3,9 +3,8 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { Button, Card, Dialog, Input, Select, Slider } from '@/components/ui';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import { API_BASE } from '@/utils/api';
 import type { ModuleType } from '@craftomation/shared';
-
-const API_BASE = `http://${window.location.hostname}:3001`;
 
 const ALL_MODULES: { value: ModuleType; labelKey: string }[] = [
   { value: 'mine', labelKey: 'module.mine' },
@@ -37,6 +36,8 @@ export function Setup() {
   const [clientDevices, setClientDevices] = useState<{ clientId: string; moduleType: ModuleType }[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serverAddress, setServerAddress] = useState<string | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState(false);
 
   const coveredModules = useMemo(() => {
     const all = [hostModule, ...clientModules];
@@ -69,6 +70,26 @@ export function Setup() {
       }
     } catch { /* ignore */ }
   }, [state.sessionId, state.deviceId, hostModule]);
+
+  // Fetch server IP on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/api/session/server-info`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.addresses?.length > 0) {
+          setServerAddress(`${data.addresses[0]}:${data.port}`);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  function copyAddress() {
+    if (serverAddress) {
+      navigator.clipboard.writeText(`http://${serverAddress}`);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    }
+  }
 
   // Poll for connected client modules every 5 seconds
   useEffect(() => {
@@ -179,6 +200,21 @@ export function Setup() {
           <div className="p-3 bg-red-900/50 text-red-400 rounded-lg text-sm">
             {error}
           </div>
+        )}
+
+        {/* Connection Info */}
+        {serverAddress && (
+          <Card>
+            <h2 className="text-sm font-medium text-gray-400 mb-2">{t('setup.connectionInfo')}</h2>
+            <p className="text-xs text-gray-500 mb-2">{t('setup.connectionHint')}</p>
+            <button
+              onClick={copyAddress}
+              className="w-full flex items-center justify-between bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-lg transition-colors"
+            >
+              <span className="text-white font-mono text-lg font-bold tracking-wide">{serverAddress}</span>
+              <span className="text-xs text-indigo-400 ml-2">{copiedAddress ? t('setup.copied') : t('setup.copyLink')}</span>
+            </button>
+          </Card>
         )}
 
         {/* Connected Devices */}

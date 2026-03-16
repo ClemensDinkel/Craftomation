@@ -40,6 +40,9 @@ export const de: Record<string, string> = {
   'setup.noClients': 'Noch keine weiteren Geräte verbunden',
   'setup.host': 'Host (Du)',
   'setup.missingModules': 'Folgende Module sind noch keinem Gerät zugewiesen:',
+  'setup.connectionInfo': 'Verbindungsadresse',
+  'setup.connectionHint': 'Andere Geräte öffnen diese Adresse im Browser:',
+  'setup.copyLink': 'Kopieren',
   'setup.startGame': 'Spiel starten',
 
   // Waiting Screen

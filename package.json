@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w @craftomation/shared\" \"npm run dev -w @craftomation/backend\" \"npm run dev -w @craftomation/frontend\"",
-    "build": "npm run build -w @craftomation/shared && npm run build -w @craftomation/backend && npm run build -w @craftomation/frontend"
+    "build": "npm run build -w @craftomation/shared && npm run build -w @craftomation/backend && npm run build -w @craftomation/frontend",
+    "start": "npm run start -w @craftomation/backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import os from 'os';
 import { WSMessageType, ModuleType } from '@craftomation/shared';
 import { createSession, sessionExists } from '../session/sessionManager';
 import { gameState } from '../state/gameState';
@@ -10,6 +11,23 @@ import { startGameLoop } from '../game/gameLoop';
 import { handleAddPlayer } from '../handlers/mineHandler';
 
 const router = Router();
+
+// GET /api/session/server-info — return the server's local IP addresses and port
+router.get('/server-info', (req: Request, res: Response) => {
+  const interfaces = os.networkInterfaces();
+  const addresses: string[] = [];
+  for (const iface of Object.values(interfaces)) {
+    if (!iface) continue;
+    for (const info of iface) {
+      if (info.family === 'IPv4' && !info.internal) {
+        addresses.push(info.address);
+      }
+    }
+  }
+  // Use the port the server is actually listening on
+  const port = (req.socket.localPort) || parseInt(process.env.PORT || '3001', 10);
+  res.json({ addresses, port });
+});
 
 // GET /api/session/active — check if a game is currently running
 router.get('/active', (_req: Request, res: Response) => {

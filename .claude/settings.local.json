@@ -14,7 +14,8 @@
       "Bash(grep -n \"auction\\\\|Price\\\\|Preis\\\\|colPrice\" /d/Projects/Craftomation/packages/frontend/src/i18n/*.ts | head -30)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cd:*)"
     ]
   }
 }

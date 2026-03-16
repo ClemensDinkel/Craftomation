@@ -7,13 +7,14 @@ import { MineModule } from '@/components/modules/MineModule';
 import { ManufacturingModule } from '@/components/modules/ManufacturingModule';
 import { LabModule } from '@/components/modules/LabModule';
 import { AuctionModule } from '@/components/modules/AuctionModule';
+import { WS_BASE } from '@/utils/api';
 
 export function GameShell() {
   const { t } = useLocale();
   const { state } = useGame();
 
   const wsUrl = state.sessionId
-    ? `ws://${window.location.hostname}:3001?sessionId=${state.sessionId}&deviceId=${encodeURIComponent(state.deviceId)}`
+    ? `${WS_BASE}?sessionId=${state.sessionId}&deviceId=${encodeURIComponent(state.deviceId)}`
     : null;
   const { status, send } = useWebSocket(wsUrl);
 
