@@ -5,6 +5,35 @@ import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, LabColor } from '@craftomation/shared';
 import { Button, ActiveGoodsDurability } from '@/components/ui';
 import { useProductionGoodDefs } from '@/hooks/useProductionGoods';
+import clsx from 'clsx';
+
+type HintDir = 'up' | 'down' | 'left' | 'right';
+
+const ARROW_SIZE = { sm: 14, base: 18 } as const;
+
+function HintArrow({ dir, color, size = 'base' }: { dir: HintDir; color: string; size?: 'sm' | 'base' }) {
+  const isVertical = dir === 'up' || dir === 'down';
+  const glyph = isVertical ? '↓' : '→';
+  const px = ARROW_SIZE[size];
+  return (
+    <span
+      className={clsx(
+        'absolute flex items-center justify-center font-black',
+        size === 'base' ? 'text-base' : 'text-sm',
+        color,
+        isVertical ? 'left-1/2 -translate-x-1/2' : 'top-1/2 -translate-y-1/2',
+        dir === 'up' && 'bottom-full translate-y-1/2',
+        dir === 'down' && 'top-full -translate-y-1/2',
+        dir === 'left' && 'right-full translate-x-1/2',
+        dir === 'right' && 'left-full -translate-x-1/2',
+        (dir === 'up' || dir === 'left') && 'rotate-180',
+      )}
+      style={{ width: px, height: px }}
+    >
+      {glyph}
+    </span>
+  );
+}
 
 interface Props {
   player: Player;
@@ -34,6 +63,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     distinctResourceCount?: number;
     directionHints?: ('left' | 'right' | null)[];
     excludedResources?: string[];
+    alphabeticalHints?: ('up' | 'down' | null)[];
   } | null>(null);
 
   const availableSlots = getAvailableSlots();
@@ -91,6 +121,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
     const bonus: typeof bonusInfo = {};
     if (result.distinctResourceCount !== undefined) bonus.distinctResourceCount = result.distinctResourceCount;
     if (result.directionHints) bonus.directionHints = result.directionHints;
+    if (result.alphabeticalHints) bonus.alphabeticalHints = result.alphabeticalHints;
     if (result.excludedResources && result.excludedResources.length > 0) bonus.excludedResources = result.excludedResources;
     setBonusInfo(Object.keys(bonus).length > 0 ? bonus : null);
 
@@ -226,11 +257,13 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
                     >
                       {res.initialLetter}
                     </span>
-                    {/* Direction hint arrow for yellow slots */}
+                    {/* Direction hint for yellow slots */}
                     {color === 'yellow' && bonusInfo?.directionHints?.[i] && (
-                      <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-yellow-400 text-[10px] font-bold">
-                        {bonusInfo.directionHints[i] === 'left' ? '\u2190' : '\u2192'}
-                      </span>
+                      <HintArrow dir={bonusInfo.directionHints[i]!} color="text-yellow-400" />
+                    )}
+                    {/* Alphabetical hint for red slots */}
+                    {color === 'red' && bonusInfo?.alphabeticalHints?.[i] && (
+                      <HintArrow dir={bonusInfo.alphabeticalHints[i]!} color="text-red-400" />
                     )}
                     {!resultColors && (
                       <button
@@ -365,7 +398,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-3 pt-3 pb-3">
                     {entry.sequence.map((resId, i) => {
                       const res = resourceMap[resId];
                       if (!res) return null;
@@ -375,13 +408,21 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
                         : c === 'yellow'
                           ? 'ring-2 ring-yellow-500'
                           : 'ring-2 ring-red-500';
+                      const alphaHint = c === 'red' ? entry.alphabeticalHints?.[i] : null;
+                      const dirHint = c === 'yellow' ? entry.directionHints?.[i] : null;
                       return (
                         <span
                           key={i}
-                          className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white ${ring}`}
+                          className={`relative inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white ${ring}`}
                           style={{ backgroundColor: res.color }}
                         >
                           {res.initialLetter}
+                          {alphaHint && (
+                            <HintArrow dir={alphaHint} color="text-red-400" size="sm" />
+                          )}
+                          {dirHint && (
+                            <HintArrow dir={dirHint} color="text-yellow-400" size="sm" />
+                          )}
                         </span>
                       );
                     })}

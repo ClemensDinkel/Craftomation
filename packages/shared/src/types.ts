@@ -102,6 +102,8 @@ export interface LabExperimentEntry {
   match: boolean;
   recipeId?: string;        // if matched
   distinctResourceCount?: number; // from Notizbuch bonus
+  alphabeticalHints?: ('up' | 'down' | null)[]; // red slot hints: correct resource is alphabetically before (up) or after (down)
+  directionHints?: ('left' | 'right' | null)[];  // Mikroskop bonus
 }
 
 export interface LabResult {
@@ -114,6 +116,7 @@ export interface LabResult {
   distinctResourceCount?: number;                      // Notizbuch bonus
   excludedResources?: string[];                        // Spektrometer bonus
   directionHints?: ('left' | 'right' | null)[];        // Mikroskop bonus
+  alphabeticalHints?: ('up' | 'down' | null)[];        // red slot hints: correct resource alphabetically before/after guess
 }
 
 // ==========================================

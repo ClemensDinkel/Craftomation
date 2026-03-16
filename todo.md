@@ -9,7 +9,6 @@
 ## balancing
 
 ## features
-- verbrauch mit 2 dezimalstellen anzeigen (wenn marktbericht vorhanden)
 
 ## änderungen
 - marktbericht klingt nicht nach herstellbarem produktionsgut

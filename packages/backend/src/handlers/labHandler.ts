@@ -197,6 +197,23 @@ export function handleLabExperiment(
   };
   player.labHistory.push(historyEntry);
 
+  // Find the best-matching recipe for bonus calculations
+  const bestRecipe = bestRecipeId ? gameState.getRecipes().find(r => r.id === bestRecipeId) : null;
+
+  // Alphabetical hints for red slots (always active, no bonus needed)
+  let alphabeticalHints: ('up' | 'down' | null)[] | undefined;
+  if (bestRecipe && !isMatch) {
+    const resMap = new Map(gameState.getResources().map(r => [r.id, r.name]));
+    alphabeticalHints = bestCoding.map((color, i) => {
+      if (color !== 'red') return null;
+      const guessName = resMap.get(sequence[i]) ?? '';
+      const targetName = resMap.get(bestRecipe.sequence[i]) ?? '';
+      if (!guessName || !targetName || guessName === targetName) return null;
+      return targetName.localeCompare(guessName) < 0 ? 'up' : 'down';
+    });
+    historyEntry.alphabeticalHints = alphabeticalHints;
+  }
+
   // Build result with production good bonuses
   const result: LabResult = {
     success: true,
@@ -204,10 +221,8 @@ export function handleLabExperiment(
     recipeUnlocked: unlockedRecipe,
     colorCoding: bestCoding,
     similarity: bestSimilarity,
+    alphabeticalHints,
   };
-
-  // Find the best-matching recipe for bonus calculations
-  const bestRecipe = bestRecipeId ? gameState.getRecipes().find(r => r.id === bestRecipeId) : null;
 
   // Notizbuch bonus: show count of distinct resources in target recipe
   if (getActiveBonus(player, 'lab_distinct_count') > 0 && bestRecipe) {
@@ -222,13 +237,15 @@ export function handleLabExperiment(
 
   // Mikroskop bonus: direction hints for yellow results
   if (getActiveBonus(player, 'lab_direction') > 0 && bestRecipe && bestCoding) {
-    result.directionHints = bestCoding.map((color, i) => {
+    const hints = bestCoding.map((color, i) => {
       if (color !== 'yellow') return null;
       // Find where this resource actually is in the target
       const targetIdx = bestRecipe.sequence.indexOf(sequence[i]);
       if (targetIdx === -1) return null;
-      return targetIdx < i ? 'left' : 'right';
+      return targetIdx < i ? 'left' as const : 'right' as const;
     });
+    result.directionHints = hints;
+    historyEntry.directionHints = hints;
     applyWear(player, 'lab_direction');
   }
 
