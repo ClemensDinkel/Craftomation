@@ -57,6 +57,7 @@ export interface Player {
   mineBoostCooldownUntil: number | null; // timestamp when cooldown expires
   nextMineProductionAt: number;        // timestamp when next resource is produced
   nextMineWearAt: number;              // timestamp for next mining tool wear tick (unaffected by mining rights)
+  nextMarketInfoWearAt: number;        // timestamp for next market_info tool wear tick
   manufacturingQueue: ManufacturingJob[];
   labHistory: LabExperimentEntry[];
   autoTradeRules: AutoTradeRule[];

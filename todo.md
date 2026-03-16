@@ -7,9 +7,6 @@
 ## bugs
 
 ## balancing
-- preise für konsum zu hoch, verbrauch zu hoch, 
-- preise für prodmittel zu niedrig sollten teurer als konsumgüter sein, aber spürbar weniger passiver verbrauch nachfrage also durch spielerverbrauch geregelt
-- prodgut verbrauch, was genaue formel ? fühlt sich sehr rapide (zumindest bei spitzhacke) an
 
 ## features
 - in jedem Modul sollte in Prozentwerten angezeigt werden wie viel Halbbarkeit aktiv genutzte Produktionsmittel noch haben (+ name natürlich)

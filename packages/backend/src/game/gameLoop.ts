@@ -294,6 +294,36 @@ function processManufacturing(players: Player[]): void {
   }
 }
 
+// --- Market Info Wear (timer-based, like mining) ---
+
+const MARKET_INFO_WEAR_INTERVAL_MS = 10_000; // same base interval as mining
+
+function processMarketInfoWear(players: Player[]): void {
+  const config = gameState.getConfig();
+  const speed = config?.gameSpeed ?? 1.0;
+  const now = Date.now();
+  const interval = Math.round(MARKET_INFO_WEAR_INTERVAL_MS / speed);
+
+  for (const player of players) {
+    const bonus = getActiveBonus(player, 'market_info');
+    if (bonus <= 0) continue;
+
+    if (!player.nextMarketInfoWearAt) {
+      player.nextMarketInfoWearAt = now + interval;
+      continue;
+    }
+
+    if (now >= player.nextMarketInfoWearAt) {
+      applyWear(player, 'market_info');
+      player.nextMarketInfoWearAt = now + interval;
+    }
+
+    if (player.nextMarketInfoWearAt < now - MARKET_INFO_WEAR_INTERVAL_MS * 2) {
+      player.nextMarketInfoWearAt = now + interval;
+    }
+  }
+}
+
 // --- Market ---
 
 function processMarketConsumption(): void {
@@ -414,9 +444,10 @@ function processAutoTrade(players: Player[]): void {
 function processTick(): void {
   const players = gameState.getAllPlayers();
 
-  // Mining & manufacturing run every sub-tick (2s) for responsive production
+  // Mining, manufacturing & passive wear run every sub-tick (2s)
   processMining(players);
   processManufacturing(players);
+  processMarketInfoWear(players);
 
   // Economy systems run every ECONOMY_TICK_INTERVAL sub-ticks (10s)
   const isEconomyTick = subTickCount % ECONOMY_TICK_INTERVAL === 0;

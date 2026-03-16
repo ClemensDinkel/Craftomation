@@ -22,6 +22,7 @@ function createDefaultPlayer(name: string): Player {
     mineBoostCooldownUntil: null,
     nextMineProductionAt: 0,
     nextMineWearAt: 0,
+    nextMarketInfoWearAt: 0,
     manufacturingQueue: [],
     labHistory: [],
     autoTradeRules: [],
