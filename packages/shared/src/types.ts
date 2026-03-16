@@ -56,6 +56,7 @@ export interface Player {
   mineBoostUntil: number | null;       // timestamp when boost expires
   mineBoostCooldownUntil: number | null; // timestamp when cooldown expires
   nextMineProductionAt: number;        // timestamp when next resource is produced
+  nextMineWearAt: number;              // timestamp for next mining tool wear tick (unaffected by mining rights)
   manufacturingQueue: ManufacturingJob[];
   labHistory: LabExperimentEntry[];
   autoTradeRules: AutoTradeRule[];
@@ -229,6 +230,7 @@ export enum WSMessageType {
   DEBUG_SET_INVENTORY = 'DEBUG_SET_INVENTORY',
   SET_AUTO_TRADE_RULE = 'SET_AUTO_TRADE_RULE',
   REMOVE_AUTO_TRADE_RULE = 'REMOVE_AUTO_TRADE_RULE',
+  SET_MANUFACTURING_AUTOBUY = 'SET_MANUFACTURING_AUTOBUY',
 
   // Server -> Client
   GAME_STATE_UPDATE = 'GAME_STATE_UPDATE',

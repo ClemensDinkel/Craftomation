@@ -11,6 +11,7 @@ import {
   BASE_PRICES,
   PRODUCTION_GOOD_BASE_PRICES,
   PRODUCTION_GOOD_REFERENCE_SUPPLY,
+  MAX_PRICE_MULTIPLIER,
 } from '../game/marketConstants';
 
 const MINING_RIGHT_PRICE_MULTIPLIER = 20;
@@ -36,18 +37,9 @@ const SPREAD = 0.025; // 2.5% bid/ask spread
  *    → smooth curve from maxPrice (supply=0) to basePrice (supply=refSupply)
  *  Production goods: sqrt curve (flatter scaling at low supply)
  */
-function recalcPrice(entry: MarketEntry, basePrice: number, refSupply: number, maxMultiplier: number = 10, useSqrt: boolean = false): void {
-  let raw: number;
-  if (useSqrt) {
-    // Production goods: sqrt curve
-    const ratio = refSupply / Math.max(entry.supply, 0.5);
-    raw = basePrice * Math.sqrt(ratio);
-    raw = Math.min(basePrice * maxMultiplier, raw);
-  } else {
-    // Exponential decay: smooth price transitions at all supply levels
-    const exponent = Math.min(1, 1 - entry.supply / refSupply);
-    raw = basePrice * Math.pow(maxMultiplier, exponent);
-  }
+function recalcPrice(entry: MarketEntry, basePrice: number, refSupply: number): void {
+  const exponent = Math.min(1, 1 - entry.supply / refSupply);
+  const raw = basePrice * Math.pow(MAX_PRICE_MULTIPLIER, exponent);
   entry.price = Math.max(1, Math.round(raw * 100) / 100);
 }
 
@@ -100,21 +92,20 @@ export function handleMarketBuy(
     : itemType === 'production_good'
       ? PRODUCTION_GOOD_REFERENCE_SUPPLY
       : CONSUMABLE_REFERENCE_SUPPLY;
-  const isPg = itemType === 'production_good';
 
   // Calculate total cost unit by unit with price recalc (buy at ask price)
   let totalCost = 0;
   for (let i = 0; i < actualAmount; i++) {
     totalCost += buyPrice(entry.price);
     entry.supply = Math.max(0, entry.supply - 1);
-    recalcPrice(entry, basePrice, refSupply, 10, isPg);
+    recalcPrice(entry, basePrice, refSupply);
   }
   totalCost = Math.round(totalCost * 100) / 100;
 
   if (player.cash < totalCost) {
     // Rollback supply change
     entry.supply += actualAmount;
-    recalcPrice(entry, basePrice, refSupply, 10, isPg);
+    recalcPrice(entry, basePrice, refSupply);
     sendError(clientId, 'Not enough cash');
     return;
   }
@@ -202,22 +193,21 @@ export function handleMarketSell(
     const config = gameState.getConfig();
     const playerCount = config?.playerCount ?? 4;
     const tierFactor: Record<number, number> = {
-      1: 0.3,
-      2: 0.2,
-      3: 0.15,
-      4: 0.1,
+      1: 0.2,
+      2: 0.15,
+      3: 0.1,
+      4: 0.07,
     };
     const factor = tierFactor[tier] ?? 0.3;
     entry.baseConsumptionRate = playerCount * factor;
   }
 
-  const isPg = itemType === 'production_good';
 
   // Calculate total revenue unit by unit with price recalc (sell at bid price)
   let totalRevenue = 0;
   for (let i = 0; i < amount; i++) {
     entry.supply += 1;
-    recalcPrice(entry, basePrice, refSupply, 10, isPg);
+    recalcPrice(entry, basePrice, refSupply);
     totalRevenue += sellPrice(entry.price);
   }
   totalRevenue = Math.round(totalRevenue * 100) / 100;

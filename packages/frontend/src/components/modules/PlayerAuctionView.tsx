@@ -397,26 +397,30 @@ function TradeColumnHeaders({ showConsumption }: { showConsumption?: boolean } =
   );
 }
 
-function TradeRow({ label, owned, supply, price, cash, consumptionRate, onBuy, onSell }: {
+function TradeRow({ label, owned, supply, price, cash, consumptionRate, sellableCount, onBuy, onSell }: {
   label: React.ReactNode;
   owned: number;
   supply: number;
   price: number;
   cash: number;
   consumptionRate?: number;
+  sellableCount?: number;
   onBuy: (amount: number) => void;
   onSell: (amount: number) => void;
 }) {
   const roundedPrice = Math.round(price * 100) / 100;
   const canBuy1 = cash >= roundedPrice && supply >= 1;
   const canBuy5 = cash >= roundedPrice * 5 && supply >= 5;
-  const canSell1 = owned >= 1;
-  const canSell5 = owned >= 5;
+  const sellable = sellableCount ?? owned;
+  const canSell1 = sellable >= 1;
+  const canSell5 = sellable >= 5;
 
   return (
     <div className="flex items-center gap-2 rounded-lg bg-gray-800/60 px-3 py-1.5">
       <div className="flex-1 min-w-0 truncate">{label}</div>
-      <span className="text-xs text-blue-400 font-mono w-8 text-right shrink-0">{owned}</span>
+      <span className="text-xs text-blue-400 font-mono w-8 text-right shrink-0">
+        {sellable}{sellableCount !== undefined && sellable < owned ? '*' : ''}
+      </span>
       <div className="flex gap-0.5 shrink-0">
         <TradeButton label="-5" disabled={!canSell5} onClick={() => onSell(5)} variant="sell" />
         <TradeButton label="-" disabled={!canSell1} onClick={() => onSell(1)} variant="sell" />
@@ -717,17 +721,10 @@ function ProductionGoodsTab({ player, market, pgDefs, onBuy, onSell }: {
                           price={entry.price}
                           cash={player.cash}
                           consumptionRate={marketInfoLevel >= 1 ? entry.baseConsumptionRate : undefined}
+                          sellableCount={unusedCount}
                           onBuy={amount => onBuy(id, 'production_good', amount)}
-                          onSell={amount => {
-                            if (unusedCount <= 0) return;
-                            onSell(id, 'production_good', Math.min(amount, unusedCount));
-                          }}
+                          onSell={amount => onSell(id, 'production_good', amount)}
                         />
-                        {ownedTotal > 0 && unusedCount < ownedTotal && (
-                          <div className="text-[10px] text-gray-500 pl-7 mt-0.5">
-                            {ownedTotal - unusedCount}x {t('productionGood.notTradeable')}
-                          </div>
-                        )}
                       </div>
                     );
                   })}

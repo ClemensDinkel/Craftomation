@@ -119,7 +119,14 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
       {/* Auto-Buy Toggle */}
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setAutoBuy(prev => !prev)}
+          onClick={() => {
+            const next = !autoBuy;
+            setAutoBuy(next);
+            send({
+              type: WSMessageType.SET_MANUFACTURING_AUTOBUY,
+              payload: { playerId: player.id, autoBuy: next },
+            });
+          }}
           className={`relative w-9 h-5 rounded-full transition-colors ${autoBuy ? 'bg-indigo-600' : 'bg-gray-600'}`}
         >
           <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoBuy ? 'translate-x-4' : ''}`} />

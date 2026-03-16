@@ -14,6 +14,7 @@ import {
   PRODUCTION_GOOD_REFERENCE_SUPPLY,
   BASE_PRICES,
   PRODUCTION_GOOD_BASE_PRICES,
+  MAX_PRICE_MULTIPLIER,
 } from './marketConstants';
 
 let loopTimer: NodeJS.Timeout | null = null;
@@ -47,6 +48,18 @@ function getMiningInterval(player: Player, resourceId: string): number {
   return Math.round(MINE_BASE_INTERVAL_MS / (speed * multiplier));
 }
 
+// Wear interval: only gameSpeed and boost affect it, NOT mining rights
+function getMineWearInterval(player: Player): number {
+  const config = gameState.getConfig();
+  const speed = config?.gameSpeed ?? 1.0;
+  let multiplier = 1.0;
+
+  const isBoosted = player.mineBoostUntil !== null && Date.now() < player.mineBoostUntil;
+  if (isBoosted) multiplier *= 1.5;
+
+  return Math.round(MINE_BASE_INTERVAL_MS / (speed * multiplier));
+}
+
 function processMining(players: Player[]): void {
   const now = Date.now();
   const market = gameState.getMarket();
@@ -62,11 +75,15 @@ function processMining(players: Player[]): void {
   for (const player of players) {
     if (player.mineResources.length === 0) continue;
 
-    // Initialize timestamp if not set (also handles old saves without this field)
+    // Initialize timestamps if not set (also handles old saves without these fields)
     if (!player.nextMineProductionAt) {
       const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
       player.nextMineProductionAt = now + getMiningInterval(player, resourceId);
+      player.nextMineWearAt = now + getMineWearInterval(player);
       continue;
+    }
+    if (!player.nextMineWearAt) {
+      player.nextMineWearAt = now + getMineWearInterval(player);
     }
 
     // Produce resources as long as we've passed the deadline
@@ -80,9 +97,6 @@ function processMining(players: Player[]): void {
       player.resources[resourceId] = (player.resources[resourceId] ?? 0) + baseProduction;
       player.mineResourceIndex = (player.mineResourceIndex + 1) % player.mineResources.length;
 
-      // Apply wear to mining tool
-      if (miningBoost > 0) applyWear(player, 'mining_boost');
-
       // Schedule next production based on the NEW resource (which may have different rights)
       const nextResourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
       const interval = getMiningInterval(player, nextResourceId);
@@ -90,10 +104,19 @@ function processMining(players: Player[]): void {
       produced++;
     }
 
+    // Wear ticks on its own timer (unaffected by mining rights)
+    if (miningBoost > 0 && now >= player.nextMineWearAt) {
+      applyWear(player, 'mining_boost');
+      player.nextMineWearAt = now + getMineWearInterval(player);
+    }
+
     // If timestamp fell too far behind (e.g. game was paused), reset it
     if (player.nextMineProductionAt < now - MINE_BASE_INTERVAL_MS * 2) {
       const resourceId = player.mineResources[player.mineResourceIndex % player.mineResources.length];
       player.nextMineProductionAt = now + getMiningInterval(player, resourceId);
+    }
+    if (player.nextMineWearAt < now - MINE_BASE_INTERVAL_MS * 2) {
+      player.nextMineWearAt = now + getMineWearInterval(player);
     }
   }
 }
@@ -153,7 +176,7 @@ export function tryStartJob(player: Player, speed: number): boolean {
         estimatedCost += Math.round(tempPrice * (1 + 0.025) * 100) / 100;
         tempSupply = Math.max(0, tempSupply - 1);
         const exponent = Math.min(1, 1 - tempSupply / RESOURCE_REFERENCE_SUPPLY);
-        tempPrice = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(10, exponent) * 100) / 100);
+        tempPrice = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(MAX_PRICE_MULTIPLIER, exponent) * 100) / 100);
       }
       totalAutoBuyCost += estimatedCost;
       buyPlan.push({ resId, amount });
@@ -169,7 +192,7 @@ export function tryStartJob(player: Player, speed: number): boolean {
         actualTotalCost += Math.round(entry.price * (1 + 0.025) * 100) / 100;
         entry.supply = Math.max(0, entry.supply - 1);
         const exponent = Math.min(1, 1 - entry.supply / RESOURCE_REFERENCE_SUPPLY);
-        entry.price = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(10, exponent) * 100) / 100);
+        entry.price = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(MAX_PRICE_MULTIPLIER, exponent) * 100) / 100);
       }
       player.resources[resId] = (player.resources[resId] ?? 0) + amount;
     }
@@ -299,27 +322,25 @@ function processPriceAdjustment(): void {
   // Resources: exponential decay curve
   for (const entry of Object.values(market.resources)) {
     const exponent = Math.min(1, 1 - entry.supply / RESOURCE_REFERENCE_SUPPLY);
-    const newPrice = RESOURCE_BASE_PRICE * Math.pow(10, exponent);
+    const newPrice = RESOURCE_BASE_PRICE * Math.pow(MAX_PRICE_MULTIPLIER, exponent);
     entry.price = Math.max(1, Math.round(newPrice * 100) / 100);
   }
 
   for (const recipe of recipes) {
     if (recipe.type === 'consumable') {
-      // Consumables: exponential decay curve
       const basePrice = BASE_PRICES[recipe.tier];
       const entry = market.consumables[recipe.id];
       if (!entry) continue;
       const exponent = Math.min(1, 1 - entry.supply / CONSUMABLE_REFERENCE_SUPPLY);
-      const newPrice = basePrice * Math.pow(10, exponent);
+      const newPrice = basePrice * Math.pow(MAX_PRICE_MULTIPLIER, exponent);
       entry.price = Math.max(1, Math.round(newPrice * 100) / 100);
     } else {
-      // Production goods: sqrt curve (flatter scaling)
       const basePrice = PRODUCTION_GOOD_BASE_PRICES[recipe.tier];
       const entry = market.productionGoods[recipe.id];
       if (!entry) continue;
-      const ratio = PRODUCTION_GOOD_REFERENCE_SUPPLY / Math.max(entry.supply, 0.5);
-      const newPrice = basePrice * Math.sqrt(ratio);
-      entry.price = Math.min(basePrice * 10, Math.max(1, Math.round(newPrice * 100) / 100));
+      const exponent = Math.min(1, 1 - entry.supply / PRODUCTION_GOOD_REFERENCE_SUPPLY);
+      const newPrice = basePrice * Math.pow(MAX_PRICE_MULTIPLIER, exponent);
+      entry.price = Math.max(1, Math.round(newPrice * 100) / 100);
     }
   }
 }
@@ -354,7 +375,7 @@ function processAutoTrade(players: Player[]): void {
             const basePrice = isRes ? RESOURCE_BASE_PRICE : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
             const refSupply = isRes ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
             const exponent = Math.min(1, 1 - entry.supply / refSupply);
-            entry.price = Math.max(1, Math.round(basePrice * Math.pow(10, exponent) * 100) / 100);
+            entry.price = Math.max(1, Math.round(basePrice * Math.pow(MAX_PRICE_MULTIPLIER, exponent) * 100) / 100);
             marketChanged = true;
             applyWear(player, 'auto_trade');
           }
@@ -370,7 +391,7 @@ function processAutoTrade(players: Player[]): void {
           const basePrice = isRes ? RESOURCE_BASE_PRICE : (BASE_PRICES[gameState.getRecipes().find(r => r.id === rule.itemId)?.tier ?? 1] ?? 12);
           const refSupply = isRes ? RESOURCE_REFERENCE_SUPPLY : CONSUMABLE_REFERENCE_SUPPLY;
           const exponent = Math.min(1, 1 - entry.supply / refSupply);
-          entry.price = Math.max(1, Math.round(basePrice * Math.pow(10, exponent) * 100) / 100);
+          entry.price = Math.max(1, Math.round(basePrice * Math.pow(MAX_PRICE_MULTIPLIER, exponent) * 100) / 100);
           const revenue = Math.round(entry.price * (1 - 0.025) * 100) / 100;
           player.cash = Math.round((player.cash + revenue) * 100) / 100;
           inventory[rule.itemId] = (inventory[rule.itemId] ?? 0) - 1;

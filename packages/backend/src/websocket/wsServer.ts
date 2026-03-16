@@ -4,7 +4,7 @@ import { WSMessage, WSMessageType } from '@craftomation/shared';
 import { gameState } from '../state/gameState';
 import { v4 as uuidv4 } from 'uuid';
 import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
-import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
+import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleSetManufacturingAutoBuy, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
 import { handleLabExperiment } from '../handlers/labHandler';
 import { handleMarketBuy, handleMarketSell, handleListRecipe, handleBuyRecipe, handleBuyMiningRight, handleSetAutoTradeRule, handleRemoveAutoTradeRule, handleDebugSetInventory } from '../handlers/auctionHandler';
 import url from 'url';
@@ -80,6 +80,9 @@ function handleMessage(clientId: string, message: WSMessage): void {
       break;
     case WSMessageType.REMOVE_MANUFACTURING_JOB:
       handleRemoveManufacturingJob(message.payload as { playerId: string; jobIndex: number });
+      break;
+    case WSMessageType.SET_MANUFACTURING_AUTOBUY:
+      handleSetManufacturingAutoBuy(message.payload as { playerId: string; autoBuy: boolean });
       break;
     case WSMessageType.DEBUG_UNLOCK_RECIPE:
       handleDebugUnlockRecipe(message.payload as { playerId: string; recipeId: string });

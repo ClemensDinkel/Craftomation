@@ -93,6 +93,35 @@ export function handleRemoveManufacturingJob(payload: {
   broadcastGameState();
 }
 
+export function handleSetManufacturingAutoBuy(payload: {
+  playerId: string;
+  autoBuy: boolean;
+}): void {
+  const { playerId, autoBuy } = payload;
+  const player = gameState.getPlayer(playerId);
+  if (!player) return;
+
+  let changed = false;
+  for (const job of player.manufacturingQueue) {
+    if (!job.resourcesConsumed && job.autoBuy !== autoBuy) {
+      job.autoBuy = autoBuy;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    // If autoBuy was enabled and the first job is waiting for resources, try to start it
+    if (autoBuy && player.manufacturingQueue.length > 0 && !player.manufacturingQueue[0].resourcesConsumed) {
+      const config = gameState.getConfig();
+      const speed = config?.gameSpeed ?? 1.0;
+      tryStartJob(player, speed);
+    }
+
+    gameState.setPlayer(playerId, player);
+    broadcastGameState();
+  }
+}
+
 export function handleDebugUnlockRecipe(payload: {
   playerId: string;
   recipeId: string;

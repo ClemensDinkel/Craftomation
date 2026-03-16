@@ -2,8 +2,11 @@
 // Used by gameLoop.ts, auctionHandler.ts, and initialCalculations.ts
 
 export const RESOURCE_REFERENCE_SUPPLY = 100;
-export const CONSUMABLE_REFERENCE_SUPPLY = 10;
-export const PRODUCTION_GOOD_REFERENCE_SUPPLY = 5;
+export const CONSUMABLE_REFERENCE_SUPPLY = 20;
+export const PRODUCTION_GOOD_REFERENCE_SUPPLY = 20;
+
+// Max price multiplier for exponential decay formula (at supply=0: basePrice * MAX_PRICE_MULTIPLIER)
+export const MAX_PRICE_MULTIPLIER = 5;
 
 export const RESOURCE_BASE_PRICE = 5;
 
