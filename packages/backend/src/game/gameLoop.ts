@@ -157,9 +157,9 @@ export function tryStartJob(player: Player, speed: number): boolean {
     }
   }
 
-  // If resources are missing, try auto-buy from market
+  // If resources are missing, try auto-buy from market (requires auto_buy production good)
   if (Object.keys(missing).length > 0) {
-    if (!job.autoBuy) return false;
+    if (!job.autoBuy || getActiveBonus(player, 'auto_buy') <= 0) return false;
 
     const market = gameState.getMarket();
     // Pre-check: enough supply and cash for all missing resources
@@ -199,6 +199,7 @@ export function tryStartJob(player: Player, speed: number): boolean {
     actualTotalCost = Math.round(actualTotalCost * 100) / 100;
     player.cash = Math.round((player.cash - actualTotalCost) * 100) / 100;
     gameState.setMarket(market);
+    applyWear(player, 'auto_buy');
   }
 
   for (const [resId, needed] of Object.entries(cost)) {
@@ -331,6 +332,16 @@ function processMarketConsumption(): void {
   const tick = gameState.getTick();
   const market = gameState.getMarket();
   const timeMultiplier = 1 + tick * 0.01;
+
+  // Dynamically adjust resource consumption when player count changes
+  const currentPlayerCount = gameState.getAllPlayers().length;
+  if (currentPlayerCount !== config.playerCount) {
+    const resourceConsumption = (currentPlayerCount / config.resourceTypeCount) * 1.2;
+    for (const entry of Object.values(market.resources)) {
+      entry.baseConsumptionRate = resourceConsumption;
+    }
+    config.playerCount = currentPlayerCount;
+  }
 
   for (const entry of Object.values(market.resources)) {
     const consumption = entry.baseConsumptionRate * config.consumptionRate * timeMultiplier;

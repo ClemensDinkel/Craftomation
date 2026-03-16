@@ -146,7 +146,8 @@ export type ProductionGoodBonusType =
   | 'sabotage'
   | 'sabotage_defense'
   | 'patent_office'
-  | 'auto_trade';
+  | 'auto_trade'
+  | 'auto_buy';
 
 export interface ProductionGoodDefinition {
   id: string;

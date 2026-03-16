@@ -16,4 +16,3 @@
 
 ### fragen
 - autokauf als t1 / t2 produktionsgut erst ermöglichen ?
-- wenn spieler late joinen, wird verbrauchsformel angepasst oder nur anfangs berechnet ?

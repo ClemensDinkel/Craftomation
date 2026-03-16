@@ -15,6 +15,7 @@ export const PRODUCTION_GOOD_DEFINITIONS: ProductionGoodDefinition[] = [
   { id: 'workbench',     tier: 1, bonusType: 'craft_speed',        bonusValue: 25, module: 'manufacturing', wearUses: 12 },
   { id: 'notebook',      tier: 1, bonusType: 'lab_distinct_count', bonusValue: 1,  module: 'lab',           wearUses: 5 },
   { id: 'market_report', tier: 1, bonusType: 'market_info',        bonusValue: 1,  module: 'auction',       wearUses: 20 },
+  { id: 'supplier',      tier: 1, bonusType: 'auto_buy',           bonusValue: 1,  module: 'auction',       wearUses: 30 },
   // Tier 2
   { id: 'drill',         tier: 2, bonusType: 'mining_boost',      bonusValue: 2,  module: 'mine',          wearUses: 30 },
   { id: 'greenhouse',    tier: 2, bonusType: 'plantation_boost',   bonusValue: 2,  module: 'plantation',    wearUses: 30 },

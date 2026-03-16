@@ -3,7 +3,7 @@ import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, ManufacturingJob } from '@craftomation/shared';
 import { Button, Dialog, ProductionGoodBadge, ActiveGoodsDurability } from '@/components/ui';
-import { useProductionGoodDefs } from '@/hooks/useProductionGoods';
+import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
 
 interface Props {
   player: Player;
@@ -21,6 +21,7 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
   const [autoBuy, setAutoBuy] = useState(false);
   const pgDefs = useProductionGoodDefs();
+  const hasAutoBuyItem = getActiveBonus(player, 'auto_buy', pgDefs) > 0;
 
   const knownRecipes = useMemo(() => {
     const known = new Set(player.knownRecipes);
@@ -119,23 +120,25 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
         </Dialog>
       )}
 
-      {/* Auto-Buy Toggle */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => {
-            const next = !autoBuy;
-            setAutoBuy(next);
-            send({
-              type: WSMessageType.SET_MANUFACTURING_AUTOBUY,
-              payload: { playerId: player.id, autoBuy: next },
-            });
-          }}
-          className={`relative w-9 h-5 rounded-full transition-colors ${autoBuy ? 'bg-indigo-600' : 'bg-gray-600'}`}
-        >
-          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoBuy ? 'translate-x-4' : ''}`} />
-        </button>
-        <span className="text-sm text-gray-300">{t('manufacturing.autoBuy')}</span>
-      </div>
+      {/* Auto-Buy Toggle — requires Supplier production good */}
+      {hasAutoBuyItem && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const next = !autoBuy;
+              setAutoBuy(next);
+              send({
+                type: WSMessageType.SET_MANUFACTURING_AUTOBUY,
+                payload: { playerId: player.id, autoBuy: next },
+              });
+            }}
+            className={`relative w-9 h-5 rounded-full transition-colors ${autoBuy ? 'bg-indigo-600' : 'bg-gray-600'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoBuy ? 'translate-x-4' : ''}`} />
+          </button>
+          <span className="text-sm text-gray-300">{t('manufacturing.autoBuy')}</span>
+        </div>
+      )}
 
       {/* Manufacturing Queue */}
       <section>

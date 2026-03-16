@@ -84,7 +84,7 @@ export function handleLabExperiment(
   }
 
   if (Object.keys(missing).length > 0) {
-    if (!player.labAutoBuy) {
+    if (!player.labAutoBuy || getActiveBonus(player, 'auto_buy') <= 0) {
       return { success: false, reason: 'insufficient_resources' };
     }
 
@@ -131,6 +131,7 @@ export function handleLabExperiment(
     actualTotalCost = Math.round(actualTotalCost * 100) / 100;
     player.cash = Math.round((player.cash - actualTotalCost) * 100) / 100;
     gameState.setMarket(market);
+    applyWear(player, 'auto_buy');
   }
 
   for (const [resId, needed] of Object.entries(cost)) {
