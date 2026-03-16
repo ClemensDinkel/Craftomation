@@ -2,6 +2,7 @@ import { WSMessageType, type LabColor, type LabResult, type LabExperimentEntry }
 import { gameState } from '../state/gameState';
 import { broadcast } from '../websocket/wsServer';
 import { getActiveBonus, applyWear } from '../game/productionGoodUtils';
+import { RESOURCE_REFERENCE_SUPPLY, RESOURCE_BASE_PRICE, MAX_PRICE_MULTIPLIER } from '../game/marketConstants';
 
 function broadcastGameState(): void {
   broadcast({
@@ -47,6 +48,18 @@ function computeWordle(guess: string[], target: string[]): { colorCoding: LabCol
   return { colorCoding, similarity };
 }
 
+export function handleSetLabAutoBuy(payload: { playerId: string; autoBuy: boolean }): void {
+  const { playerId, autoBuy } = payload;
+  const player = gameState.getPlayer(playerId);
+  if (!player) return;
+
+  if (player.labAutoBuy !== autoBuy) {
+    player.labAutoBuy = autoBuy;
+    gameState.setPlayer(playerId, player);
+    broadcastGameState();
+  }
+}
+
 export function handleLabExperiment(
   clientId: string,
   payload: { playerId: string; sequence: string[] },
@@ -55,20 +68,73 @@ export function handleLabExperiment(
   const player = gameState.getPlayer(playerId);
   if (!player) return { success: false, reason: 'insufficient_resources' };
 
-  // 1. Check & deduct resources
+  // 1. Check & deduct resources (with optional auto-buy)
   const cost: Record<string, number> = {};
   for (const resId of sequence) {
     cost[resId] = (cost[resId] ?? 0) + 1;
   }
 
+  // Determine which resources are missing
+  const missing: Record<string, number> = {};
   for (const [resId, needed] of Object.entries(cost)) {
-    if ((player.resources[resId] ?? 0) < needed) {
-      return { success: false, reason: 'insufficient_resources' };
+    const have = player.resources[resId] ?? 0;
+    if (have < needed) {
+      missing[resId] = needed - Math.floor(have);
     }
   }
 
+  if (Object.keys(missing).length > 0) {
+    if (!player.labAutoBuy) {
+      return { success: false, reason: 'insufficient_resources' };
+    }
+
+    // Try to auto-buy missing resources from market
+    const market = gameState.getMarket();
+    let totalAutoBuyCost = 0;
+    const buyPlan: { resId: string; amount: number }[] = [];
+
+    for (const [resId, amount] of Object.entries(missing)) {
+      const entry = market.resources[resId];
+      if (!entry || Math.floor(entry.supply) < amount) {
+        return { success: false, reason: 'insufficient_resources' };
+      }
+      // Estimate cost (unit by unit with price changes)
+      let estimatedCost = 0;
+      let tempSupply = entry.supply;
+      let tempPrice = entry.price;
+      for (let i = 0; i < amount; i++) {
+        estimatedCost += Math.round(tempPrice * (1 + 0.025) * 100) / 100;
+        tempSupply = Math.max(0, tempSupply - 1);
+        const exponent = Math.min(1, 1 - tempSupply / RESOURCE_REFERENCE_SUPPLY);
+        tempPrice = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(MAX_PRICE_MULTIPLIER, exponent) * 100) / 100);
+      }
+      totalAutoBuyCost += estimatedCost;
+      buyPlan.push({ resId, amount });
+    }
+
+    if (player.cash < totalAutoBuyCost) {
+      return { success: false, reason: 'insufficient_resources' };
+    }
+
+    // Execute auto-buy
+    let actualTotalCost = 0;
+    for (const { resId, amount } of buyPlan) {
+      const entry = market.resources[resId];
+      for (let i = 0; i < amount; i++) {
+        actualTotalCost += Math.round(entry.price * (1 + 0.025) * 100) / 100;
+        entry.supply = Math.max(0, entry.supply - 1);
+        const exponent = Math.min(1, 1 - entry.supply / RESOURCE_REFERENCE_SUPPLY);
+        entry.price = Math.max(1, Math.round(RESOURCE_BASE_PRICE * Math.pow(MAX_PRICE_MULTIPLIER, exponent) * 100) / 100);
+      }
+      player.resources[resId] = (player.resources[resId] ?? 0) + amount;
+    }
+    actualTotalCost = Math.round(actualTotalCost * 100) / 100;
+    player.cash = Math.round((player.cash - actualTotalCost) * 100) / 100;
+    gameState.setMarket(market);
+  }
+
   for (const [resId, needed] of Object.entries(cost)) {
-    player.resources[resId] -= needed;
+    if (needed > 0) player.resources[resId] -= needed;
   }
 
   // 2. Determine tier from sequence length: length = tier + 2

@@ -29,6 +29,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
   const [resultColors, setResultColors] = useState<LabColor[] | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
+  const [autoBuy, setAutoBuy] = useState(player.labAutoBuy ?? false);
   const [bonusInfo, setBonusInfo] = useState<{
     distinctResourceCount?: number;
     directionHints?: ('left' | 'right' | null)[];
@@ -172,6 +173,24 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
         <ActiveGoodsDurability player={player} pgDefs={pgDefs} module="lab" />
       </div>
 
+      {/* Auto-Buy Toggle */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            const next = !autoBuy;
+            setAutoBuy(next);
+            send({
+              type: WSMessageType.SET_LAB_AUTOBUY,
+              payload: { playerId: player.id, autoBuy: next },
+            });
+          }}
+          className={`relative w-9 h-5 rounded-full transition-colors ${autoBuy ? 'bg-indigo-600' : 'bg-gray-600'}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoBuy ? 'translate-x-4' : ''}`} />
+        </button>
+        <span className="text-sm text-gray-300">{t('lab.autoBuy')}</span>
+      </div>
+
       {/* Slot Area */}
       <section>
         <h3 className="text-sm font-medium text-gray-400 mb-2">{t('lab.experiment')}</h3>
@@ -300,7 +319,7 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
             const owned = Math.floor(player.resources[res.id] ?? 0);
             const used = usedResources[res.id] ?? 0;
             const available = owned - used;
-            const disabled = available <= 0 || !!resultColors;
+            const disabled = (!autoBuy && available <= 0) || !!resultColors;
 
             return (
               <button
@@ -320,7 +339,9 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
                   {res.initialLetter}
                 </span>
                 <span className="text-[10px] text-gray-400 truncate max-w-full">{res.name}</span>
-                <span className="text-[10px] text-gray-500 font-mono">{available}</span>
+                <span className={`text-[10px] font-mono ${available < 0 && autoBuy ? 'text-amber-400' : 'text-gray-500'}`}>
+                  {available < 0 && autoBuy ? `${owned}+$` : available}
+                </span>
               </button>
             );
           })}

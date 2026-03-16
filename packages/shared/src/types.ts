@@ -60,6 +60,7 @@ export interface Player {
   nextMarketInfoWearAt: number;        // timestamp for next market_info tool wear tick
   manufacturingQueue: ManufacturingJob[];
   labHistory: LabExperimentEntry[];
+  labAutoBuy: boolean;              // auto-buy missing resources from market for lab experiments
   autoTradeRules: AutoTradeRule[];
 }
 
@@ -232,6 +233,7 @@ export enum WSMessageType {
   SET_AUTO_TRADE_RULE = 'SET_AUTO_TRADE_RULE',
   REMOVE_AUTO_TRADE_RULE = 'REMOVE_AUTO_TRADE_RULE',
   SET_MANUFACTURING_AUTOBUY = 'SET_MANUFACTURING_AUTOBUY',
+  SET_LAB_AUTOBUY = 'SET_LAB_AUTOBUY',
 
   // Server -> Client
   GAME_STATE_UPDATE = 'GAME_STATE_UPDATE',

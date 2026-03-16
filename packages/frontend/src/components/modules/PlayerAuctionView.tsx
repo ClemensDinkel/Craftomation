@@ -432,7 +432,7 @@ function TradeRow({ label, owned, supply, price, cash, consumptionRate, sellable
       <span className="text-xs text-green-400 font-mono w-12 text-right shrink-0">${roundedPrice}</span>
       {consumptionRate !== undefined && (
         <span className="text-[10px] text-orange-400 font-mono w-8 text-right shrink-0" title="Consumption/tick">
-          {consumptionRate > 0 ? consumptionRate.toFixed(1) : '-'}
+          {consumptionRate > 0 ? consumptionRate.toFixed(2) : '-'}
         </span>
       )}
     </div>

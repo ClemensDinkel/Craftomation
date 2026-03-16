@@ -5,7 +5,7 @@ import { gameState } from '../state/gameState';
 import { v4 as uuidv4 } from 'uuid';
 import { handleAddPlayer, handleBoostMinePlayer, handleChangeMineResource } from '../handlers/mineHandler';
 import { handleAddManufacturingJob, handleRemoveManufacturingJob, handleSetManufacturingAutoBuy, handleDebugUnlockRecipe } from '../handlers/manufacturingHandler';
-import { handleLabExperiment } from '../handlers/labHandler';
+import { handleLabExperiment, handleSetLabAutoBuy } from '../handlers/labHandler';
 import { handleMarketBuy, handleMarketSell, handleListRecipe, handleBuyRecipe, handleBuyMiningRight, handleSetAutoTradeRule, handleRemoveAutoTradeRule, handleDebugSetInventory } from '../handlers/auctionHandler';
 import url from 'url';
 
@@ -89,6 +89,9 @@ function handleMessage(clientId: string, message: WSMessage): void {
       break;
     case WSMessageType.DEBUG_SET_INVENTORY:
       handleDebugSetInventory(message.payload as { playerId: string; itemId: string; itemType: 'resource' | 'consumable' | 'production_good' | 'cash'; amount: number });
+      break;
+    case WSMessageType.SET_LAB_AUTOBUY:
+      handleSetLabAutoBuy(message.payload as { playerId: string; autoBuy: boolean });
       break;
     case WSMessageType.LAB_EXPERIMENT: {
       const result = handleLabExperiment(clientId, message.payload as { playerId: string; sequence: string[] });

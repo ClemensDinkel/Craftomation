@@ -9,8 +9,6 @@
 ## balancing
 
 ## features
-- in jedem Modul sollte in Prozentwerten angezeigt werden wie viel Halbbarkeit aktiv genutzte Produktionsmittel noch haben (+ name natürlich)
-- auto kauf auch für labor
 - verbrauch mit 2 dezimalstellen anzeigen (wenn marktbericht vorhanden)
 
 ## änderungen

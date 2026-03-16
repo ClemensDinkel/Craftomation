@@ -25,6 +25,7 @@ function createDefaultPlayer(name: string): Player {
     nextMarketInfoWearAt: 0,
     manufacturingQueue: [],
     labHistory: [],
+    labAutoBuy: false,
     autoTradeRules: [],
   };
 }

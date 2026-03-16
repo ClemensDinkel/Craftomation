@@ -94,6 +94,7 @@ export const de: Record<string, string> = {
   'lab.history': 'Bisherige Experimente',
   'lab.allTierKnown': 'Alle Rezepte dieses Tiers bereits entdeckt!',
   'lab.noneDiscovered': 'Noch keine entdeckt',
+  'lab.autoBuy': 'Autokauf (fehlende Rohstoffe vom Markt)',
 
   // Manufacturing Module
   'manufacturing.title': 'Fertigungshalle',

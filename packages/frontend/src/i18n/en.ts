@@ -94,6 +94,7 @@ export const en: Record<string, string> = {
   'lab.history': 'Past Experiments',
   'lab.allTierKnown': 'All recipes for this tier already discovered!',
   'lab.noneDiscovered': 'None discovered yet',
+  'lab.autoBuy': 'Auto-buy (missing resources from market)',
 
   // Manufacturing Module
   'manufacturing.title': 'Manufacturing',
