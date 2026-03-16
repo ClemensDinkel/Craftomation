@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, MarketState, WSMessage, ProductionGoodDefinition, AutoTradeRule } from '@craftomation/shared';
-import { Button, Input, Dialog, Select } from '@/components/ui';
+import { Button, Input, Dialog, Select, ActiveGoodsDurability } from '@/components/ui';
 import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
 
 interface Props {
@@ -85,13 +85,14 @@ export function PlayerAuctionView({ player, players, resources, recipes, market,
     <div className="flex flex-col gap-4">
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-gray-900 -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-gray-800">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-2">
           <Button variant="ghost" size="sm" onClick={onBack}>
             {t('common.back')}
           </Button>
           <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
           <span className="ml-auto text-lg font-bold text-green-400">${Math.floor(player.cash)}</span>
         </div>
+        <ActiveGoodsDurability player={player} pgDefs={pgDefs} module="auction" />
 
         {/* Tabs */}
         <div className="flex gap-1">

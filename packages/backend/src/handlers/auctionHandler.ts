@@ -484,6 +484,7 @@ export function handleDebugSetInventory(payload: {
           currentUnused.push({ itemId, wearRemaining: wear, isUsed: false });
         }
         player.productionGoods[itemId] = [...usedItems, ...currentUnused];
+        activateProductionGood(player, itemId);
       } else if (targetUnused < unusedCount) {
         // Remove unused items from the end
         const kept = currentUnused.slice(0, targetUnused);

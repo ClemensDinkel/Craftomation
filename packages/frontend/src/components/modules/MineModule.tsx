@@ -4,8 +4,8 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, MiningRight, WSMessage, ProductionGoodDefinition } from '@craftomation/shared';
-import { Button, Input, Dialog } from '@/components/ui';
-import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
+import { Button, Input, Dialog, ActiveGoodsDurability } from '@/components/ui';
+import { useProductionGoodDefs } from '@/hooks/useProductionGoods';
 
 interface MineModuleProps {
   send: (msg: WSMessage) => void;
@@ -104,8 +104,6 @@ function PlayerRow({ player, resources, miningRights, pgDefs, onBoost, onChangeR
   const { t } = useLocale();
   const [now, setNow] = useState(Date.now());
 
-  const miningBonus = getActiveBonus(player, 'mining_boost', pgDefs);
-
   const isBoosted = player.mineBoostUntil !== null && now < player.mineBoostUntil;
   const isCooldown = !isBoosted && player.mineBoostCooldownUntil !== null && now < player.mineBoostCooldownUntil;
   const isReady = !isBoosted && !isCooldown;
@@ -162,11 +160,6 @@ function PlayerRow({ player, resources, miningRights, pgDefs, onBoost, onChangeR
       <div className="flex items-center gap-3">
         <span className="flex-1 text-white font-medium truncate flex items-center gap-1.5">
           {player.name}
-          {miningBonus > 0 && (
-            <span className="text-xs text-cyan-400 font-bold" title={`Mining +${miningBonus}`}>
-              +{miningBonus}
-            </span>
-          )}
           {heldRights.length > 0 && (
             <span className="text-green-400 text-[10px]" title={`${heldRights.length}x 2x`}>
               &#9650;
@@ -207,6 +200,7 @@ function PlayerRow({ player, resources, miningRights, pgDefs, onBoost, onChangeR
           onToggleAll={handleToggleAll}
         />
       </div>
+      <ActiveGoodsDurability player={player} pgDefs={pgDefs} module="mine" />
     </div>
   );
 }

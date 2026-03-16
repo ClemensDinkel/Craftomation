@@ -7,3 +7,4 @@ export { Slider } from './Slider';
 export { Spinner } from './Spinner';
 export { Dialog } from './Dialog';
 export { ProductionGoodBadge, formatBonusText } from './ProductionGoodBadge';
+export { ActiveGoodsDurability } from './ActiveGoodsDurability';

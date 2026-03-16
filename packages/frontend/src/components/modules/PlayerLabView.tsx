@@ -3,7 +3,8 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, LabColor } from '@craftomation/shared';
-import { Button } from '@/components/ui';
+import { Button, ActiveGoodsDurability } from '@/components/ui';
+import { useProductionGoodDefs } from '@/hooks/useProductionGoods';
 
 interface Props {
   player: Player;
@@ -23,6 +24,7 @@ function getAvailableSlots(): number {
 export function PlayerLabView({ player, resources, recipes, send, onBack }: Props) {
   const { t } = useLocale();
   const { state, dispatch } = useGame();
+  const pgDefs = useProductionGoodDefs();
   const [slots, setSlots] = useState<(string | null)[]>(Array(MAX_SLOTS).fill(null));
   const [resultColors, setResultColors] = useState<LabColor[] | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
@@ -160,11 +162,14 @@ export function PlayerLabView({ player, resources, recipes, send, onBack }: Prop
   return (
     <div className="flex flex-col gap-4">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-gray-900 -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-gray-800 flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          {t('common.back')}
-        </Button>
-        <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
+      <div className="sticky top-0 z-10 bg-gray-900 -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-gray-800">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            {t('common.back')}
+          </Button>
+          <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
+        </div>
+        <ActiveGoodsDurability player={player} pgDefs={pgDefs} module="lab" />
       </div>
 
       {/* Slot Area */}

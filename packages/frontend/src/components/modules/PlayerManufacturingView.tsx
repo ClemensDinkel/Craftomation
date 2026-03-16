@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocale } from '@/i18n';
 import { WSMessageType } from '@craftomation/shared';
 import type { Player, Resource, Recipe, WSMessage, ManufacturingJob } from '@craftomation/shared';
-import { Button, Dialog, ProductionGoodBadge } from '@/components/ui';
+import { Button, Dialog, ProductionGoodBadge, ActiveGoodsDurability } from '@/components/ui';
 import { useProductionGoodDefs } from '@/hooks/useProductionGoods';
 
 interface Props {
@@ -69,21 +69,24 @@ export function PlayerManufacturingView({ player, resources, recipes, send, onBa
   return (
     <div className="flex flex-col gap-4">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-gray-900 -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-gray-800 flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          {t('common.back')}
-        </Button>
-        <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
-        <div className="ml-auto flex gap-2">
-          {isDev && (
-            <Button variant="secondary" size="sm" onClick={() => setDebugDialogOpen(true)}>
-              Debug
-            </Button>
-          )}
-          <Button variant="secondary" size="sm" onClick={() => setInventoryOpen(true)}>
-            {t('manufacturing.inventory')}
+      <div className="sticky top-0 z-10 bg-gray-900 -mx-4 -mt-4 px-4 pt-4 pb-3 border-b border-gray-800">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            {t('common.back')}
           </Button>
+          <h2 className="text-lg font-bold text-white truncate">{player.name}</h2>
+          <div className="ml-auto flex gap-2">
+            {isDev && (
+              <Button variant="secondary" size="sm" onClick={() => setDebugDialogOpen(true)}>
+                Debug
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={() => setInventoryOpen(true)}>
+              {t('manufacturing.inventory')}
+            </Button>
+          </div>
         </div>
+        <ActiveGoodsDurability player={player} pgDefs={pgDefs} module="manufacturing" />
       </div>
 
       {/* Inventory Dialog */}

@@ -3,7 +3,6 @@ import { useLocale } from '@/i18n';
 import { useGame } from '@/context/GameContext';
 import type { Player, WSMessage } from '@craftomation/shared';
 import { Badge } from '@/components/ui';
-import { useProductionGoodDefs, getActiveBonus } from '@/hooks/useProductionGoods';
 import { PlayerManufacturingView } from './PlayerManufacturingView';
 
 interface ManufacturingModuleProps {
@@ -14,7 +13,6 @@ export function ManufacturingModule({ send }: ManufacturingModuleProps) {
   const { t } = useLocale();
   const { state } = useGame();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const pgDefs = useProductionGoodDefs();
 
   const players = useMemo(() => {
     if (!state.gameState?.players) return [];
@@ -50,7 +48,6 @@ export function ManufacturingModule({ send }: ManufacturingModuleProps) {
           <PlayerCard
             key={player.id}
             player={player}
-            pgDefs={pgDefs}
             onClick={() => setSelectedPlayerId(player.id)}
           />
         ))}
@@ -59,21 +56,15 @@ export function ManufacturingModule({ send }: ManufacturingModuleProps) {
   );
 }
 
-function PlayerCard({ player, pgDefs, onClick }: { player: Player; pgDefs: Map<string, import('@craftomation/shared').ProductionGoodDefinition>; onClick: () => void }) {
+function PlayerCard({ player, onClick }: { player: Player; onClick: () => void }) {
   const queueCount = player.manufacturingQueue.length;
-  const craftBonus = getActiveBonus(player, 'craft_speed', pgDefs);
 
   return (
     <button
       onClick={onClick}
       className="flex items-center gap-3 rounded-lg border border-gray-700/50 bg-gray-800/60 px-4 py-3 text-left hover:bg-gray-700/60 transition-colors w-full"
     >
-      <span className="flex-1 text-white font-medium truncate">
-        {player.name}
-        {craftBonus > 0 && (
-          <span className="ml-2 text-xs text-cyan-400 font-bold">-{craftBonus}% Craft</span>
-        )}
-      </span>
+      <span className="flex-1 text-white font-medium truncate">{player.name}</span>
       {queueCount > 0 && (
         <Badge color="yellow">{queueCount}</Badge>
       )}
