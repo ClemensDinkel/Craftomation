@@ -12,7 +12,11 @@ export interface RawProduct {
 }
 
 function parseCsv<T>(filename: string): T[] {
-  const filepath = path.resolve(__dirname, filename);
+  // Check for release layout (data/ next to cwd), fall back to __dirname
+  const releasePath = path.join(process.cwd(), 'data', filename);
+  const filepath = fs.existsSync(releasePath)
+    ? releasePath
+    : path.resolve(__dirname, filename);
   const content = fs.readFileSync(filepath, 'utf-8');
   const lines = content.trim().split('\n');
   const headers = lines[0].split(',');

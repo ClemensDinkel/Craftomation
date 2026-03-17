@@ -1,0 +1,57 @@
+import WebSocket from 'ws';
+import { SessionConfig, Player, MarketState, Resource, Recipe, GameState, ModuleType, ProductionGoodDefinition } from '@craftomation/shared';
+declare class GameStateManager {
+    private config;
+    private players;
+    private resources;
+    private recipes;
+    private productionGoodDefs;
+    private market;
+    private gameTick;
+    private gameStarted;
+    private connectedClients;
+    private clientModules;
+    private clientLastSeen;
+    hasSession(): boolean;
+    getSessionId(): string | null;
+    getConfig(): SessionConfig | null;
+    isGameStarted(): boolean;
+    createSession(sessionId: string): SessionConfig;
+    updateConfig(updates: Partial<SessionConfig>): void;
+    reset(): void;
+    getPlayer(id: string): Player | undefined;
+    getAllPlayers(): Player[];
+    setPlayer(id: string, player: Player): void;
+    removePlayer(id: string): void;
+    setResources(resources: Resource[]): void;
+    getResources(): Resource[];
+    setRecipes(recipes: Recipe[]): void;
+    getRecipes(): Recipe[];
+    setProductionGoodDefinitions(defs: ProductionGoodDefinition[]): void;
+    getProductionGoodDefinitions(): ProductionGoodDefinition[];
+    getMarket(): MarketState;
+    setMarket(market: MarketState): void;
+    getTick(): number;
+    incrementTick(): number;
+    startGame(): void;
+    stopGame(): void;
+    addClient(id: string, ws: WebSocket): void;
+    removeClient(id: string): void;
+    getClient(id: string): WebSocket | undefined;
+    getAllClients(): Map<string, WebSocket>;
+    setClientModule(clientId: string, moduleType: ModuleType): void;
+    touchClient(clientId: string): void;
+    getClientModule(clientId: string): ModuleType | undefined;
+    /** Check if a client is still active (connected via WS or seen recently) */
+    private isClientActive;
+    getAssignedModules(): ModuleType[];
+    getAssignedModulesWithClients(): {
+        clientId: string;
+        moduleType: ModuleType;
+    }[];
+    removeClientModule(clientId: string): void;
+    toJSON(): GameState;
+    loadFromSnapshot(state: GameState): void;
+}
+export declare const gameState: GameStateManager;
+export {};

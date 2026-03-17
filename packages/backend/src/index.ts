@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import http from 'http';
 import os from 'os';
 import sessionRoutes from './routes/sessionRoutes';
@@ -17,7 +18,11 @@ app.use(express.json());
 app.use('/api/session', sessionRoutes);
 
 // Serve frontend static files in production
-const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
+// In dev/monorepo: relative to __dirname (packages/backend/dist -> packages/frontend/dist)
+// In release: a "public" folder next to the server
+const frontendDist = fs.existsSync(path.join(process.cwd(), 'public', 'index.html'))
+  ? path.join(process.cwd(), 'public')
+  : path.join(__dirname, '..', '..', 'frontend', 'dist');
 app.use(express.static(frontendDist));
 
 // SPA fallback — serve index.html for all non-API routes

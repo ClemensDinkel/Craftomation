@@ -60,4 +60,4 @@ Phase 1 (Toast) → Phase 3 (Error via Toast) | Phase 2, 4, 5 unabhaengig
 ### Kommentare
 - Momentan muss port 3001 freigegeben werden, damit sich geräte verbinden können
 - `netsh advfirewall firewall add rule name="Craftomation" dir=in action=allow protocol=TCP localport=3001`
-- elegantere Lösung finden !
+- elegantere Lösung finden
